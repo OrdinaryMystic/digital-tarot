@@ -16,7 +16,9 @@ import { ShuffleNotification, OverhandShuffleIndicator } from './components/Shuf
 import Instructions from './components/Instructions';
 import DropZone from './components/DropZone';
 import { MobileWarning } from './components/MobileWarning';
-import { trackEvent } from './utils/analytics';
+import { track, trackEvent, updateReadingState, resetReadingState } from './utils/analytics';
+import { FeedbackPrompt } from './components/FeedbackPrompt';
+import { useFeedbackPrompt } from './hooks/useFeedbackPrompt';
 import './App.css';
 
 function App() {
@@ -171,7 +173,7 @@ function App() {
     }
   }, [drawnCards, handleReturnCard, dropZoneBounds, topHalfDropZoneBounds, bottomHalfDropZoneBounds, isSplit]);
 
-  const { dragStart, rotateStart, handleDoubleClick, isDragging } = useCardInteraction(updateCard, bringToFront, handleDragEndWithCheck, zoom, panOffset);
+  const { dragStart, rotateStart, handleDoubleClick, isDragging, isRotating } = useCardInteraction(updateCard, bringToFront, handleDragEndWithCheck, zoom, panOffset);
 
   // Handle card selection
   const handleCardSelect = useCallback((cardId: string) => {
@@ -190,6 +192,43 @@ function App() {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Track reading completion state for feedback prompt
+  const [hasCompletedReading, setHasCompletedReading] = useState(false);
+
+  // Monitor for reading completion
+  useEffect(() => {
+    const checkInterval = setInterval(() => {
+      // Check if reading was completed by checking localStorage
+      const readingCompleted = localStorage.getItem('digital-tarot-reading-completed') === 'true';
+      if (readingCompleted && !hasCompletedReading) {
+        setHasCompletedReading(true);
+      }
+    }, 1000);
+
+    return () => clearInterval(checkInterval);
+  }, [hasCompletedReading]);
+
+  // Feedback prompt hook
+  const {
+    showPrompt: showFeedbackPrompt,
+    handleClose: handleFeedbackClose,
+    handleShareFeedback,
+    handleMaybeLater,
+    handleNoThanks,
+  } = useFeedbackPrompt({
+    isDragging,
+    isRotating,
+    isShuffling: isContinuousShuffling,
+    showInstructions,
+    hasCompletedReading,
+  });
+
+  // Track session start
+  useEffect(() => {
+    track('session_start');
+    resetReadingState();
   }, []);
 
   // Check if instructions have been shown before
@@ -213,12 +252,26 @@ function App() {
         const seed = seedGenerator.generateSeed();
         drawCard(topCard.card, topCard.isReversed, seed, 'top', drawFaceUp);
         setTopHalf(prev => prev.slice(1));
+        // Track draw_card event
+        track('draw_card', {
+          face_up: drawFaceUp,
+          deck_mode: 'split',
+          source_pile: 'left',
+        });
+        updateReadingState((prev) => ({ drawCount: prev.drawCount + 1 }));
       } else {
         if (bottomHalf.length === 0) return;
         const bottomCard = bottomHalf[0];
         const seed = seedGenerator.generateSeed();
         drawCard(bottomCard.card, bottomCard.isReversed, seed, 'bottom', drawFaceUp);
         setBottomHalf(prev => prev.slice(1));
+        // Track draw_card event
+        track('draw_card', {
+          face_up: drawFaceUp,
+          deck_mode: 'split',
+          source_pile: 'right',
+        });
+        updateReadingState((prev) => ({ drawCount: prev.drawCount + 1 }));
       }
     } else {
       if (deck.length === 0) return;
@@ -226,6 +279,13 @@ function App() {
       const seed = seedGenerator.generateSeed();
       drawCard(topDeckCard.card, topDeckCard.isReversed, seed, 'main', drawFaceUp);
       setDeck(prev => prev.slice(1));
+      // Track draw_card event
+      track('draw_card', {
+        face_up: drawFaceUp,
+        deck_mode: 'normal',
+        source_pile: 'main',
+      });
+      updateReadingState((prev) => ({ drawCount: prev.drawCount + 1 }));
     }
   }, [deck, topHalf, bottomHalf, isSplit, drawCard, seedGenerator, drawFaceUp]);
 
@@ -266,6 +326,9 @@ function App() {
 
   // Handle shuffle once (riffle shuffle)
   const handleShuffleOnce = useCallback(() => {
+    track('shuffle_used', { mode: 'riffle' });
+    updateReadingState({ hasShuffled: true });
+    
     if (isSplit) {
       // Rejoin the two halves and shuffle them together with riffle shuffle
       const combinedDeck = [...topHalf, ...bottomHalf];
@@ -307,6 +370,8 @@ function App() {
       setBottomHalf([]);
     } else {
       if (deck.length < 2) return;
+      track('shuffle_used', { mode: 'split' });
+      updateReadingState({ hasShuffled: true });
       const midpoint = Math.floor(deck.length / 2);
       const firstHalf = deck.slice(0, midpoint);
       const secondHalf = deck.slice(midpoint);
@@ -337,6 +402,9 @@ function App() {
 
   // Handle spin deck - randomly reverse cards while keeping order
   const handleSpinDeck = useCallback(() => {
+    track('shuffle_used', { mode: 'spin' });
+    updateReadingState({ hasShuffled: true });
+    
     if (isSplit) {
       if (topHalf.length === 0 && bottomHalf.length === 0) return;
       const seed = seedGenerator.generateSeed();
@@ -379,6 +447,9 @@ function App() {
 
   // Handle complete randomization of the deck
   const handleRandomizeDeck = useCallback(() => {
+    track('shuffle_used', { mode: 'randomize' });
+    updateReadingState({ hasShuffled: true });
+    
     if (isSplit) {
       // Rejoin the two halves before randomizing
       const combinedDeck = [...topHalf, ...bottomHalf];
@@ -544,6 +615,7 @@ function App() {
 
   // Handle returning all cards to the deck
   const handleReturnAllCards = useCallback(() => {
+    track('return_all_cards');
     const allReturned = returnAllCards();
     const fullDeck = createFullDeck();
     
@@ -592,6 +664,8 @@ function App() {
 
   // Handle reset all - return cards and reset deck to original order
   const handleResetAll = useCallback(() => {
+    track('reset_session');
+    resetReadingState();
     // Return all drawn cards
     returnAllCards();
     
@@ -942,6 +1016,8 @@ function App() {
               if (isContinuousShuffling) {
                 stopShuffling();
               } else {
+                track('shuffle_used', { mode: 'overhand' });
+                updateReadingState({ hasShuffled: true });
                 startShuffling();
               }
               setIsMobileMenuOpen(false);
@@ -993,7 +1069,12 @@ function App() {
             tooltip={isSessionLogOpen ? "Close Session Log" : "Open Session Log"}
             onClick={() => {
               seedGenerator.trackClick();
-              setIsSessionLogOpen(prev => !prev);
+              const newState = !isSessionLogOpen;
+              setIsSessionLogOpen(newState);
+              if (newState) {
+                track('session_log_opened');
+                updateReadingState({ hasOpenedLog: true });
+              }
               setIsMobileMenuOpen(false);
             }}
             active={isSessionLogOpen}
@@ -1023,6 +1104,7 @@ function App() {
             tooltip="Show Instructions"
             onClick={() => {
               seedGenerator.trackClick();
+              track('instructions_opened');
               setShowInstructions(true);
               setIsMobileMenuOpen(false);
             }}
@@ -1045,6 +1127,13 @@ function App() {
       <Instructions 
         isOpen={showInstructions} 
         onClose={() => setShowInstructions(false)} 
+      />
+      <FeedbackPrompt
+        isOpen={showFeedbackPrompt}
+        onClose={handleFeedbackClose}
+        onShareFeedback={handleShareFeedback}
+        onMaybeLater={handleMaybeLater}
+        onNoThanks={handleNoThanks}
       />
     </div>
   );

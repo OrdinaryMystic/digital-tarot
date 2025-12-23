@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { CardInstance } from '../types';
+import { track, trackOnce, updateReadingState } from '../utils/analytics';
 
 export interface UseCardInteractionReturn {
   isDragging: boolean;
@@ -60,6 +61,9 @@ export const useCardInteraction = (
     if (!hasStartedDraggingRef.current && (dxScreen > 5 || dyScreen > 5)) {
       hasStartedDraggingRef.current = true;
       setIsDragging(true);
+      // Track first card movement
+      trackOnce('card_moved_first_time');
+      updateReadingState({ hasMovedCard: true });
     }
 
     // Convert mouse/touch coordinates to table-surface coordinates (accounting for zoom and pan)
@@ -233,6 +237,8 @@ export const useCardInteraction = (
     document.removeEventListener('touchend', rotateEnd);
     
     setIsRotating(true);
+    // Track first card rotation
+    trackOnce('card_rotated_first_time');
     currentCardRef.current = { ...card, zIndex: newZIndex };
     cardStartRotationRef.current = card.rotation;
     totalRotationDeltaRef.current = 0; // Reset accumulated rotation
@@ -242,10 +248,10 @@ export const useCardInteraction = (
     const cardElement = (e.currentTarget as HTMLElement).closest('[data-card-id]');
     const rect = cardElement?.getBoundingClientRect();
     if (rect) {
-      cardCenterRef.current = {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-      };
+    cardCenterRef.current = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
     } else {
       // Fallback: calculate from card position and dimensions
       // Convert table coordinates to screen coordinates
@@ -281,10 +287,13 @@ export const useCardInteraction = (
     card: CardInstance,
     onFlip: (card: CardInstance) => void
   ) => {
+    const newFlippedState = !card.isFlipped;
     const flippedCard: CardInstance = {
       ...card,
-      isFlipped: !card.isFlipped,
+      isFlipped: newFlippedState,
     };
+    // Track card flip
+    track('card_flipped', { to_face_up: newFlippedState });
     onFlip(flippedCard);
   }, []);
 

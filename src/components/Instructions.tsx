@@ -109,7 +109,8 @@ const Instructions: React.FC<InstructionsProps> = ({ isOpen, onClose }) => {
             <p>
               Created by <a href="https://ordinarymysticreadings.com" target="_blank" rel="noopener noreferrer"><strong>Ordinary Mystic</strong></a>. Follow on{' '}
               <a href="https://www.tiktok.com/@ordinarymysticreadings" target="_blank" rel="noopener noreferrer">TikTok</a>. Suggestions for making this tool better?{' '}
-              <a href="mailto:ordinarymysticreadings@gmail.com">Email me</a>.
+              <a href="mailto:ordinarymysticreadings@gmail.com">Email me</a>.{' '}
+              <a href="https://docs.google.com/forms/d/e/1FAIpQLScyhkU7WYG3aaA8wwAO6ltMa3l0oXDuZ0HETMfJR6pjyHeIzg/viewform?usp=header" target="_blank" rel="noopener noreferrer">Click here</a> to give feedback on the beta version of this app.
             </p>
             <p style={{ fontSize: '0.9em', marginTop: '0.5em' }}>
               Digital Tarot v{VERSION}

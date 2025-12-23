@@ -1,0 +1,132 @@
+.feedback-prompt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000; /* Above other modals */
+  backdrop-filter: blur(2px);
+}
+
+.feedback-prompt-modal {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  position: relative;
+  color: white;
+}
+
+.feedback-prompt-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 24px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  line-height: 1;
+}
+
+.feedback-prompt-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.feedback-prompt-title {
+  margin: 0 0 16px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: white;
+}
+
+.feedback-prompt-body {
+  margin: 0 0 24px 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.feedback-prompt-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feedback-prompt-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.feedback-prompt-button-primary {
+  background: white;
+  color: #667eea;
+}
+
+.feedback-prompt-button-primary:hover {
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.feedback-prompt-button-secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.feedback-prompt-button-secondary:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.feedback-prompt-button-tertiary {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.feedback-prompt-button-tertiary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+  .feedback-prompt-modal {
+    padding: 24px;
+    width: 95%;
+  }
+
+  .feedback-prompt-title {
+    font-size: 20px;
+  }
+
+  .feedback-prompt-body {
+    font-size: 14px;
+  }
+
+  .feedback-prompt-button {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}
+
