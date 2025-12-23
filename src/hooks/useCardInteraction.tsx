@@ -1,0 +1,218 @@
+import { useState, useRef, useCallback } from 'react';
+import { CardInstance } from '../types';
+
+export interface UseCardInteractionReturn {
+  isDragging: boolean;
+  isRotating: boolean;
+  dragStart: (e: React.MouseEvent, card: CardInstance) => void;
+  rotateStart: (e: React.MouseEvent, card: CardInstance) => void;
+  handleDoubleClick: (card: CardInstance, onFlip: (card: CardInstance) => void) => void;
+  getDraggedCard: () => CardInstance | null;
+}
+
+export const useCardInteraction = (
+  onCardUpdate: (card: CardInstance) => void,
+  bringToFront: (cardId: string) => void,
+  onDragEnd?: (e: MouseEvent, cardId: string) => void,
+  zoom?: number,
+  panOffset?: { x: number; y: number }
+): UseCardInteractionReturn => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
+  const currentCardRef = useRef<CardInstance | null>(null);
+  const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const cardStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const cardStartRotationRef = useRef<number>(0);
+  const rotateStartAngleRef = useRef<number>(0);
+  const cardCenterRef = useRef<{ x: number; y: number } | null>(null);
+  const onCardUpdateRef = useRef(onCardUpdate);
+  const bringToFrontRef = useRef(bringToFront);
+  const onDragEndRef = useRef(onDragEnd);
+  const latestZIndexRef = useRef<Map<string, number>>(new Map());
+  const draggedCardIdRef = useRef<string | null>(null);
+  const zoomRef = useRef(zoom ?? 1);
+  const panOffsetRef = useRef(panOffset ?? { x: 0, y: 0 });
+
+  // Keep callback refs updated
+  onCardUpdateRef.current = onCardUpdate;
+  bringToFrontRef.current = bringToFront;
+  onDragEndRef.current = onDragEnd;
+  zoomRef.current = zoom ?? 1;
+  panOffsetRef.current = panOffset ?? { x: 0, y: 0 };
+
+  // Drag move handler (using refs to avoid closure issues)
+  const dragMove = useCallback((e: MouseEvent) => {
+    const card = currentCardRef.current;
+    if (!card || !dragStartPosRef.current || !cardStartPosRef.current) return;
+
+    // Convert mouse coordinates to table-surface coordinates (accounting for zoom and pan)
+    const currentTableX = (e.clientX - panOffsetRef.current.x) / zoomRef.current;
+    const currentTableY = (e.clientY - panOffsetRef.current.y) / zoomRef.current;
+    const startTableX = (dragStartPosRef.current.x - panOffsetRef.current.x) / zoomRef.current;
+    const startTableY = (dragStartPosRef.current.y - panOffsetRef.current.y) / zoomRef.current;
+
+    const dx = currentTableX - startTableX;
+    const dy = currentTableY - startTableY;
+
+    const newPosition = {
+      x: cardStartPosRef.current.x + dx,
+      y: cardStartPosRef.current.y + dy,
+    };
+
+    // Get the latest z-index from the map (set by bringToFront)
+    const latestZIndex = latestZIndexRef.current.get(card.id) ?? card.zIndex;
+    
+    const updatedCard: CardInstance = {
+      ...card,
+      position: newPosition,
+      zIndex: latestZIndex,
+    };
+    currentCardRef.current = updatedCard;
+    onCardUpdateRef.current(updatedCard);
+  }, []);
+
+  // Drag end handler
+  const dragEnd = useCallback((e: MouseEvent) => {
+    const card = currentCardRef.current;
+    const cardId = draggedCardIdRef.current;
+    setIsDragging(false);
+    currentCardRef.current = null;
+    dragStartPosRef.current = null;
+    cardStartPosRef.current = null;
+    document.removeEventListener('mousemove', dragMove);
+    document.removeEventListener('mouseup', dragEnd);
+    
+    // Call external drag end handler if provided (for deck drop detection)
+    if (onDragEndRef.current && card && cardId) {
+      onDragEndRef.current(e, cardId);
+    }
+    
+    draggedCardIdRef.current = null;
+  }, [dragMove]);
+
+  // Drag handlers
+  const dragStart = useCallback((e: React.MouseEvent, card: CardInstance) => {
+    e.preventDefault();
+    // Bring card to front when interaction starts and get the new z-index
+    const newZIndex = bringToFrontRef.current(card.id);
+    latestZIndexRef.current.set(card.id, newZIndex);
+    draggedCardIdRef.current = card.id;
+    
+    setIsDragging(true);
+    currentCardRef.current = { ...card, zIndex: newZIndex };
+    // Store mouse position in screen coordinates (will be converted to table coords in dragMove)
+    dragStartPosRef.current = { x: e.clientX, y: e.clientY };
+    cardStartPosRef.current = { ...card.position };
+    
+    document.addEventListener('mousemove', dragMove);
+    document.addEventListener('mouseup', dragEnd);
+  }, [dragMove, dragEnd]);
+
+  // Rotate move handler
+  const rotateMove = useCallback((e: MouseEvent) => {
+    const card = currentCardRef.current;
+    if (!card || !cardCenterRef.current) {
+      return;
+    }
+
+    const dx = e.clientX - cardCenterRef.current.x;
+    const dy = e.clientY - cardCenterRef.current.y;
+    const currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+    
+    // Calculate angle difference, handling wrap-around
+    let angleDiff = currentAngle - rotateStartAngleRef.current;
+    
+    // Normalize angle difference to -180 to 180 range to avoid large jumps
+    while (angleDiff > 180) angleDiff -= 360;
+    while (angleDiff < -180) angleDiff += 360;
+    
+    // Apply rotation with the calculated difference
+    const newRotation = cardStartRotationRef.current + angleDiff;
+    
+    // Get the latest z-index from the map (set by bringToFront)
+    const latestZIndex = latestZIndexRef.current.get(card.id) ?? card.zIndex;
+    
+    const updatedCard: CardInstance = {
+      ...card,
+      rotation: newRotation,
+      zIndex: latestZIndex,
+    };
+    currentCardRef.current = updatedCard;
+    onCardUpdateRef.current(updatedCard);
+  }, []);
+
+  // Rotate end handler
+  const rotateEnd = useCallback(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCardInteraction.tsx:91',message:'rotateEnd entry',data:{cardId:currentCardRef.current?.id,isRotating},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,D'})}).catch(()=>{});
+    // #endregion
+    setIsRotating(false);
+    currentCardRef.current = null;
+    cardCenterRef.current = null;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCardInteraction.tsx:97',message:'rotateEnd removing listeners',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    document.removeEventListener('mousemove', rotateMove);
+    document.removeEventListener('mouseup', rotateEnd);
+  }, [rotateMove]);
+
+  // Rotate handlers
+  const rotateStart = useCallback((e: React.MouseEvent, card: CardInstance) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Bring card to front when interaction starts and get the new z-index
+    const newZIndex = bringToFrontRef.current(card.id);
+    latestZIndexRef.current.set(card.id, newZIndex);
+    
+    // Always clean up any existing rotation listeners first
+    document.removeEventListener('mousemove', rotateMove);
+    document.removeEventListener('mouseup', rotateEnd);
+    
+    setIsRotating(true);
+    currentCardRef.current = { ...card, zIndex: newZIndex }; // Create a fresh copy with updated z-index
+    cardStartRotationRef.current = card.rotation;
+
+    // Calculate card center in screen coordinates using bounding box
+    // This accounts for the card's current rotation and position
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    cardCenterRef.current = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+
+    // Calculate initial angle from card center to mouse position
+    const dx = e.clientX - cardCenterRef.current.x;
+    const dy = e.clientY - cardCenterRef.current.y;
+    rotateStartAngleRef.current = Math.atan2(dy, dx) * (180 / Math.PI);
+    
+    document.addEventListener('mousemove', rotateMove);
+    document.addEventListener('mouseup', rotateEnd);
+  }, [rotateMove, rotateEnd]);
+
+  // Double-click to flip
+  const handleDoubleClick = useCallback((
+    card: CardInstance,
+    onFlip: (card: CardInstance) => void
+  ) => {
+    const flippedCard: CardInstance = {
+      ...card,
+      isFlipped: !card.isFlipped,
+    };
+    onFlip(flippedCard);
+  }, []);
+
+  const getDraggedCard = useCallback(() => {
+    return currentCardRef.current;
+  }, []);
+
+  return {
+    isDragging,
+    isRotating,
+    dragStart,
+    rotateStart,
+    handleDoubleClick,
+    getDraggedCard,
+  };
+};
+

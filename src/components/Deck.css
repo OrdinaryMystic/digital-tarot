@@ -1,0 +1,42 @@
+.deck {
+  position: absolute;
+  width: 140px;
+  height: 240px;
+  cursor: grab;
+  user-select: none;
+}
+
+.deck:active {
+  cursor: grabbing;
+}
+
+.deck.empty {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deck-cards {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.deck-card {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.deck-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+  pointer-events: none; /* Prevent image from interfering with deck drag */
+}
+
+

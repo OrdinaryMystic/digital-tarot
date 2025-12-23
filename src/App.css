@@ -1,0 +1,130 @@
+.app {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: #1a1a1a;
+  background-attachment: fixed; /* Background stays in place */
+}
+
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  pointer-events: none; /* Allow clicks to pass through to table */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.mobile-menu-toggle {
+  display: none; /* Hidden on desktop */
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1001;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  transition: all 0.2s ease;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 24px;
+  padding: 0;
+}
+
+.mobile-menu-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.hamburger-icon {
+  display: block;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  pointer-events: auto; /* Re-enable clicks on buttons */
+  margin-bottom: 30px;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 16px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .mobile-menu-toggle {
+    display: flex; /* Show on mobile */
+  }
+
+  .action-buttons {
+    position: fixed;
+    top: 70px;
+    left: 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    margin-bottom: 0;
+    max-height: calc(100vh - 90px);
+    overflow-y: auto;
+    transform: translateX(-120%);
+    transition: transform 0.3s ease;
+    gap: 12px;
+  }
+
+  .action-buttons.mobile-open {
+    transform: translateX(0);
+  }
+
+  .zoom-controls {
+    display: none; /* Hide zoom controls on mobile */
+  }
+
+  .top-bar {
+    padding: 10px;
+  }
+}
+
+.zoom-value {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: center;
+}
+
+.deck-discard-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  pointer-events: auto; /* Re-enable clicks on deck */
+}
+
+.deck-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+

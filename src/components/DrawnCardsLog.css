@@ -1,0 +1,138 @@
+.drawn-cards-log {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 250px;
+  max-height: 70vh;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 8px;
+  padding: 16px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Mobile styles for session log */
+@media (max-width: 768px) {
+  .drawn-cards-log {
+    right: 10px;
+    width: calc(100vw - 20px);
+    max-width: 300px;
+    top: auto;
+    bottom: 20px;
+    transform: none;
+    max-height: 40vh;
+  }
+}
+
+.drawn-cards-log-header {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.drawn-cards-log-header:hover {
+  color: rgba(255, 255, 255, 1);
+}
+
+.drawn-cards-log-toggle {
+  font-size: 12px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.drawn-cards-log-header:hover .drawn-cards-log-toggle {
+  opacity: 1;
+}
+
+.drawn-cards-log.minimized {
+  max-height: 50px;
+  overflow: hidden;
+}
+
+.drawn-cards-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drawn-cards-log-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.drawn-cards-log-index {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+  min-width: 24px;
+}
+
+.drawn-cards-log-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawn-cards-log-arrow {
+  font-size: 14px;
+  min-width: 16px;
+  text-align: center;
+}
+
+.drawn-cards-log-arrow.upright {
+  color: #4caf50;
+}
+
+.drawn-cards-log-arrow.reversed {
+  color: #ff9800;
+}
+
+.drawn-cards-log-empty {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+.drawn-cards-log-stats {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 12px;
+}
+
+.drawn-cards-log-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.drawn-cards-log-stat-label {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.drawn-cards-log-stat-value {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
