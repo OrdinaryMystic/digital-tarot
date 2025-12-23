@@ -13,6 +13,7 @@ import IconButton from './components/IconButton';
 import DrawnCardsLog from './components/DrawnCardsLog';
 import { ShuffleNotification, OverhandShuffleIndicator } from './components/ShuffleNotification';
 import Instructions from './components/Instructions';
+import DropZone from './components/DropZone';
 import './App.css';
 
 function App() {
@@ -94,64 +95,45 @@ function App() {
 
   // Handle drag end - check if card was dropped on deck
   const handleDragEndWithCheck = useCallback((e: MouseEvent, cardId: string) => {
-    // Check if we're over any deck (main deck or split decks)
-    // We check the bounding rect first, then verify the element exists
+    // Check if card was dropped in the drop zone (near deck position)
     const mouseX = e.clientX;
     const mouseY = e.clientY;
     
+    // Convert mouse coordinates to table coordinates
+    const tableX = (mouseX - panOffset.x) / zoom;
+    const tableY = (mouseY - panOffset.y) / zoom;
+    
+    // Determine deck position to check against
+    let deckPos = deckPosition;
     if (isSplit) {
-      // Check split decks - check both and use whichever one the mouse is over
-      if (topHalfRef.current) {
-        const topRect = topHalfRef.current.getBoundingClientRect();
-        if (
-          mouseX >= topRect.left &&
-          mouseX <= topRect.right &&
-          mouseY >= topRect.top &&
-          mouseY <= topRect.bottom
-        ) {
-          // Find the card that was being dragged
-          const cardInstance = drawnCards.find(c => c.id === cardId);
-          if (cardInstance) {
-            handleReturnCard(cardInstance);
-          }
-          return;
-        }
-      }
-      if (bottomHalfRef.current) {
-        const bottomRect = bottomHalfRef.current.getBoundingClientRect();
-        if (
-          mouseX >= bottomRect.left &&
-          mouseX <= bottomRect.right &&
-          mouseY >= bottomRect.top &&
-          mouseY <= bottomRect.bottom
-        ) {
-          // Find the card that was being dragged
-          const cardInstance = drawnCards.find(c => c.id === cardId);
-          if (cardInstance) {
-            handleReturnCard(cardInstance);
-          }
-          return;
-        }
-      }
-    } else {
-      // Check main deck - allow dropping even if deck is empty
-      if (deckRef.current) {
-        const deckRect = deckRef.current.getBoundingClientRect();
-        if (
-          mouseX >= deckRect.left &&
-          mouseX <= deckRect.right &&
-          mouseY >= deckRect.top &&
-          mouseY <= deckRect.bottom
-        ) {
-          // Find the card that was being dragged
-          const cardInstance = drawnCards.find(c => c.id === cardId);
-          if (cardInstance) {
-            handleReturnCard(cardInstance);
-          }
-        }
+      // If split, check both positions - use whichever is closer or check both
+      const topDist = Math.sqrt(
+        Math.pow(tableX - topHalfPosition.x, 2) + Math.pow(tableY - topHalfPosition.y, 2)
+      );
+      const bottomDist = Math.sqrt(
+        Math.pow(tableX - bottomHalfPosition.x, 2) + Math.pow(tableY - bottomHalfPosition.y, 2)
+      );
+      deckPos = topDist < bottomDist ? topHalfPosition : bottomHalfPosition;
+    }
+    
+    // Check if mouse is within drop zone bounds (140x240 card size + some padding)
+    const dropZoneWidth = 140;
+    const dropZoneHeight = 240;
+    const padding = 20; // Extra padding for easier dropping
+    
+    if (
+      tableX >= deckPos.x - padding &&
+      tableX <= deckPos.x + dropZoneWidth + padding &&
+      tableY >= deckPos.y - padding &&
+      tableY <= deckPos.y + dropZoneHeight + padding
+    ) {
+      // Find the card that was being dragged
+      const cardInstance = drawnCards.find(c => c.id === cardId);
+      if (cardInstance) {
+        handleReturnCard(cardInstance);
       }
     }
-  }, [drawnCards, handleReturnCard, isSplit]);
+  }, [drawnCards, handleReturnCard, isSplit, deckPosition, topHalfPosition, bottomHalfPosition, zoom, panOffset]);
 
   const { dragStart, rotateStart, handleDoubleClick, isDragging, isRotating } = useCardInteraction(updateCard, bringToFront, handleDragEndWithCheck, zoom, panOffset);
 
@@ -883,6 +865,14 @@ function App() {
         isOpen={showInstructions} 
         onClose={() => setShowInstructions(false)} 
       />
+      {isDragging && (
+        <DropZone
+          position={isSplit ? (topHalfPosition.y < bottomHalfPosition.y ? topHalfPosition : bottomHalfPosition) : deckPosition}
+          zoom={zoom}
+          panOffset={panOffset}
+          isVisible={isDragging}
+        />
+      )}
     </div>
   );
 }
