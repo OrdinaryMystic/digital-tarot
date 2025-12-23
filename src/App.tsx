@@ -95,59 +95,63 @@ function App() {
   // Handle drag end - check if card was dropped on deck
   const handleDragEndWithCheck = useCallback((e: MouseEvent, cardId: string) => {
     // Check if we're over any deck (main deck or split decks)
-    let deckElement: HTMLElement | null = null;
+    // We check the bounding rect first, then verify the element exists
+    const mouseX = e.clientX;
+    const mouseY = e.clientY;
     
     if (isSplit) {
       // Check split decks - check both and use whichever one the mouse is over
-      if (topHalfRef.current && topHalf.length > 0) {
+      if (topHalfRef.current) {
         const topRect = topHalfRef.current.getBoundingClientRect();
         if (
-          e.clientX >= topRect.left &&
-          e.clientX <= topRect.right &&
-          e.clientY >= topRect.top &&
-          e.clientY <= topRect.bottom
+          mouseX >= topRect.left &&
+          mouseX <= topRect.right &&
+          mouseY >= topRect.top &&
+          mouseY <= topRect.bottom
         ) {
-          deckElement = topHalfRef.current;
+          // Find the card that was being dragged
+          const cardInstance = drawnCards.find(c => c.id === cardId);
+          if (cardInstance) {
+            handleReturnCard(cardInstance);
+          }
+          return;
         }
       }
-      if (!deckElement && bottomHalfRef.current && bottomHalf.length > 0) {
+      if (bottomHalfRef.current) {
         const bottomRect = bottomHalfRef.current.getBoundingClientRect();
         if (
-          e.clientX >= bottomRect.left &&
-          e.clientX <= bottomRect.right &&
-          e.clientY >= bottomRect.top &&
-          e.clientY <= bottomRect.bottom
+          mouseX >= bottomRect.left &&
+          mouseX <= bottomRect.right &&
+          mouseY >= bottomRect.top &&
+          mouseY <= bottomRect.bottom
         ) {
-          deckElement = bottomHalfRef.current;
+          // Find the card that was being dragged
+          const cardInstance = drawnCards.find(c => c.id === cardId);
+          if (cardInstance) {
+            handleReturnCard(cardInstance);
+          }
+          return;
         }
       }
     } else {
-      // Check main deck
-      if (deckRef.current && deck.length > 0) {
-        deckElement = deckRef.current;
+      // Check main deck - allow dropping even if deck is empty
+      if (deckRef.current) {
+        const deckRect = deckRef.current.getBoundingClientRect();
+        if (
+          mouseX >= deckRect.left &&
+          mouseX <= deckRect.right &&
+          mouseY >= deckRect.top &&
+          mouseY <= deckRect.bottom
+        ) {
+          // Find the card that was being dragged
+          const cardInstance = drawnCards.find(c => c.id === cardId);
+          if (cardInstance) {
+            handleReturnCard(cardInstance);
+          }
+        }
       }
     }
-    
-    if (!deckElement) return;
-
-    const deckRect = deckElement.getBoundingClientRect();
-    const mouseX = e.clientX;
-    const mouseY = e.clientY;
-
-    // Check if mouse is over the deck
-    if (
-      mouseX >= deckRect.left &&
-      mouseX <= deckRect.right &&
-      mouseY >= deckRect.top &&
-      mouseY <= deckRect.bottom
-    ) {
-      // Find the card that was being dragged
-      const cardInstance = drawnCards.find(c => c.id === cardId);
-      if (cardInstance) {
-        handleReturnCard(cardInstance);
-      }
-    }
-  }, [drawnCards, handleReturnCard, deck.length, isSplit, topHalf.length, bottomHalf.length]);
+  }, [drawnCards, handleReturnCard, isSplit]);
 
   const { dragStart, rotateStart, handleDoubleClick, isDragging, isRotating } = useCardInteraction(updateCard, bringToFront, handleDragEndWithCheck, zoom, panOffset);
 
@@ -717,22 +721,30 @@ function App() {
               </div>
             </>
           ) : (
-            deck.length > 0 && (
-              <div 
-                style={{
-                  position: 'absolute',
-                  left: `${deckPosition.x}px`,
-                  top: `${deckPosition.y}px`,
-                }}
-              >
+            <div 
+              ref={deckRef}
+              style={{
+                position: 'absolute',
+                left: `${deckPosition.x}px`,
+                top: `${deckPosition.y}px`,
+                width: deck.length > 0 ? 'auto' : '140px',
+                height: deck.length > 0 ? 'auto' : '240px',
+                minWidth: '140px',
+                minHeight: '240px',
+              }}
+            >
+              {deck.length > 0 ? (
                 <Deck
                   cardCount={deck.length}
                   onDraw={() => handleDrawCard()}
-                  deckRef={deckRef}
+                  deckRef={undefined}
                   onMouseDown={handleDeckMouseDown}
                 />
-              </div>
-            )
+              ) : (
+                // Invisible placeholder when deck is empty to maintain drop target
+                <div style={{ width: '140px', height: '240px', opacity: 0 }} />
+              )}
+            </div>
           )
         }
       />
