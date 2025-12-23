@@ -56,13 +56,7 @@ export const useCardStack = (): UseCardStackReturn => {
   }, []);
 
   const updateCard = useCallback((updatedCard: CardInstance) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCardStack.tsx:47',message:'updateCard entry',data:{cardId:updatedCard.id,rotation:updatedCard.rotation},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     setDrawnCards(prev => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCardStack.tsx:50',message:'updateCard in setState',data:{cardId:updatedCard.id,prevCount:prev.length,found:prev.find(c=>c.id===updatedCard.id)?'yes':'no'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       // Preserve the highest z-index if the card was already brought to front
       return prev.map(card => {
         if (card.id === updatedCard.id) {

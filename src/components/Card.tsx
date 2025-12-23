@@ -71,6 +71,7 @@ export const CardComponent: React.FC<CardProps> = ({
                 src={card.imagePath}
                 alt={card.name}
                 className={styles.cardImage}
+                loading="lazy"
                 onError={() => {
                   setImageError(true);
                 }}

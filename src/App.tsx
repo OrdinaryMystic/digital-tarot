@@ -16,25 +16,12 @@ import Instructions from './components/Instructions';
 import './App.css';
 
 function App() {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:15',message:'App component entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,C,D'})}).catch(()=>{});
-  // #endregion
-  
   // Initialize deck with all cards upright
   let deckInit: DeckCard[] = [];
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:20',message:'Before createFullDeck',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
-    // #endregion
     const fullDeck = createFullDeck();
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:24',message:'After createFullDeck',data:{deckLength:fullDeck.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
-    // #endregion
     deckInit = fullDeck.map(card => ({ card, isReversed: false }));
   } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:28',message:'Error in deck init',data:{error:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
-    // #endregion
     throw error;
   }
   const [deck, setDeck] = useState<DeckCard[]>(deckInit);
@@ -70,9 +57,6 @@ function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:35',message:'Before useMysticalShuffle',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,E'})}).catch(()=>{});
-  // #endregion
   const {
     shuffleOnce,
     isShuffling: isContinuousShuffling,
@@ -80,17 +64,8 @@ function App() {
     stopShuffling,
     seedGenerator,
   } = useMysticalShuffle();
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:43',message:'After useMysticalShuffle',data:{hasShuffleOnce:!!shuffleOnce},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,E'})}).catch(()=>{});
-  // #endregion
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:46',message:'Before useCardStack',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,E'})}).catch(()=>{});
-  // #endregion
   const { drawnCards, drawCard, updateCard, bringToFront, returnCard, returnAllCards } = useCardStack();
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:48',message:'After useCardStack',data:{drawnCardsCount:drawnCards.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,E'})}).catch(()=>{});
-  // #endregion
   const deckRef = React.useRef<HTMLDivElement>(null);
   const topHalfRef = React.useRef<HTMLDivElement>(null);
   const bottomHalfRef = React.useRef<HTMLDivElement>(null);
@@ -660,9 +635,6 @@ function App() {
 
   // Update deck position in card positioning utility when it changes
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:323',message:'useEffect deckPosition entry',data:{deckPosition},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B,E'})}).catch(()=>{});
-    // #endregion
     if (isSplit) {
       setTopHalfPositionUtil(topHalfPosition);
       setBottomHalfPositionUtil(bottomHalfPosition);
@@ -671,20 +643,11 @@ function App() {
       setTopHalfPositionUtil(null);
       setBottomHalfPositionUtil(null);
     }
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:326',message:'useEffect deckPosition exit',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B,E'})}).catch(()=>{});
-    // #endregion
   }, [deckPosition, topHalfPosition, bottomHalfPosition, isSplit]);
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:330',message:'Before render return',data:{deckLength:deck.length,drawnCardsCount:drawnCards.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
   
   return (
     <div className="app">
-      {/* #region agent log */}
-      {/* fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:334',message:'Rendering JSX',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{}); */}
-      {/* #endregion */}
       <Table
         drawnCards={drawnCards}
         getCardById={getCardById}
