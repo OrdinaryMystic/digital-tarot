@@ -41,8 +41,8 @@ const Instructions: React.FC<InstructionsProps> = ({ isOpen, onClose }) => {
             </div>
             <div className="instruction-item">
               <strong>✂️ Cut Deck:</strong> Splits the deck into two halves that you can position separately. 
-              You can drag either half onto the other to rejoin them, or use the rejoin button. The order in 
-              which you rejoin affects which cards end up on top.
+              Use the rejoin button to combine them back together, or use a shuffle mode which will automatically 
+              rejoin and shuffle the decks. The order in which you rejoin affects which cards end up on top.
             </div>
             <div className="instruction-item">
               <strong>🌀 Spin Deck:</strong> Randomly reverses cards while keeping their order. This is perfect 

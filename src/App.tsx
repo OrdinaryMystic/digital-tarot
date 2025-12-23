@@ -14,6 +14,7 @@ import DrawnCardsLog from './components/DrawnCardsLog';
 import { ShuffleNotification, OverhandShuffleIndicator } from './components/ShuffleNotification';
 import Instructions from './components/Instructions';
 import DropZone from './components/DropZone';
+import { trackEvent } from './utils/analytics';
 import './App.css';
 
 function App() {
@@ -48,7 +49,6 @@ function App() {
   const [isDraggingDeck, setIsDraggingDeck] = useState(false);
   const [deckDragStart, setDeckDragStart] = useState({ x: 0, y: 0 });
   const [draggedDeckId, setDraggedDeckId] = useState<'top' | 'bottom' | null>(null);
-  const [deckWasDragged, setDeckWasDragged] = useState(false);
   const [shuffleNotification, setShuffleNotification] = useState<{ message: string; key: number } | null>(null);
   const [sessionLog, setSessionLog] = useState<CardInstance[]>([]);
   const [drawFaceUp, setDrawFaceUp] = useState(true);
@@ -58,6 +58,8 @@ function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [dropZoneBounds, setDropZoneBounds] = useState<{ left: number; right: number; top: number; bottom: number } | null>(null);
+  const [topHalfDropZoneBounds, setTopHalfDropZoneBounds] = useState<{ left: number; right: number; top: number; bottom: number } | null>(null);
+  const [bottomHalfDropZoneBounds, setBottomHalfDropZoneBounds] = useState<{ left: number; right: number; top: number; bottom: number } | null>(null);
   
   const {
     shuffleOnce,
@@ -80,6 +82,7 @@ function App() {
 
   // Handle returning a single card to the deck at a random position
   const handleReturnCard = useCallback((cardInstance: CardInstance) => {
+    trackEvent('return_card', { card_id: cardInstance.cardId });
     console.log('handleReturnCard called with:', cardInstance);
     const returned = returnCard(cardInstance.id);
     console.log('returnCard returned:', returned);
@@ -112,42 +115,47 @@ function App() {
     // Check if card was dropped in the drop zone using actual DOM bounds
     const mouseX = e.clientX;
     const mouseY = e.clientY;
+    const padding = 20; // Padding for easier dropping
     
-    // Use the actual drop zone bounds from the DOM element
-    if (dropZoneBounds) {
-      const padding = 20; // Padding for easier dropping
-      const inBounds = (
-        mouseX >= dropZoneBounds.left - padding &&
-        mouseX <= dropZoneBounds.right + padding &&
-        mouseY >= dropZoneBounds.top - padding &&
-        mouseY <= dropZoneBounds.bottom + padding
-      );
+    let inBounds = false;
+    
+    if (isSplit) {
+      // Check both drop zones for split decks
+      const inTopBounds = topHalfDropZoneBounds ? (
+        mouseX >= topHalfDropZoneBounds.left - padding &&
+        mouseX <= topHalfDropZoneBounds.right + padding &&
+        mouseY >= topHalfDropZoneBounds.top - padding &&
+        mouseY <= topHalfDropZoneBounds.bottom + padding
+      ) : false;
       
-      console.log('Drop zone check:', {
-        mouseX,
-        mouseY,
-        dropZoneBounds,
-        padding,
-        inBounds
-      });
+      const inBottomBounds = bottomHalfDropZoneBounds ? (
+        mouseX >= bottomHalfDropZoneBounds.left - padding &&
+        mouseX <= bottomHalfDropZoneBounds.right + padding &&
+        mouseY >= bottomHalfDropZoneBounds.top - padding &&
+        mouseY <= bottomHalfDropZoneBounds.bottom + padding
+      ) : false;
       
-      if (inBounds) {
-        console.log('✅ Card dropped in drop zone!');
-        // Find the card that was being dragged
-        const cardInstance = drawnCards.find(c => c.id === cardId);
-        if (cardInstance) {
-          console.log('Calling handleReturnCard for:', cardInstance);
-          handleReturnCard(cardInstance);
-        } else {
-          console.error('❌ Card instance not found! cardId:', cardId, 'Available cards:', drawnCards.map(c => c.id));
-        }
-      } else {
-        console.log('❌ Card NOT in drop zone bounds');
-      }
+      inBounds = inTopBounds || inBottomBounds;
     } else {
-      console.log('Drop zone bounds not available yet');
+      // Check single drop zone for normal deck
+      if (dropZoneBounds) {
+        inBounds = (
+          mouseX >= dropZoneBounds.left - padding &&
+          mouseX <= dropZoneBounds.right + padding &&
+          mouseY >= dropZoneBounds.top - padding &&
+          mouseY <= dropZoneBounds.bottom + padding
+        );
+      }
     }
-  }, [drawnCards, handleReturnCard, dropZoneBounds]);
+    
+    if (inBounds) {
+      // Find the card that was being dragged
+      const cardInstance = drawnCards.find(c => c.id === cardId);
+      if (cardInstance) {
+        handleReturnCard(cardInstance);
+      }
+    }
+  }, [drawnCards, handleReturnCard, dropZoneBounds, topHalfDropZoneBounds, bottomHalfDropZoneBounds, isSplit]);
 
   const { dragStart, rotateStart, handleDoubleClick, isDragging, isRotating } = useCardInteraction(updateCard, bringToFront, handleDragEndWithCheck, zoom, panOffset);
 
@@ -241,11 +249,13 @@ function App() {
       const midpoint = Math.floor(deck.length / 2);
       const firstHalf = deck.slice(0, midpoint);
       const secondHalf = deck.slice(midpoint);
-      // Position the two halves side by side
+      // Position the two halves vertically (one on top of the other)
       const currentX = deckPosition.x;
       const currentY = deckPosition.y;
-      const topPos = { x: currentX - 80, y: currentY };
-      const bottomPos = { x: currentX + 80, y: currentY };
+      const cardHeight = 240; // Card height in pixels
+      const spacing = 20; // Extra spacing between decks
+      const topPos = { x: currentX, y: currentY };
+      const bottomPos = { x: currentX, y: currentY + cardHeight + spacing };
       
       // Set positions in state FIRST, then set isSplit
       // This ensures positions are available when isSplit becomes true
@@ -565,63 +575,22 @@ function App() {
         y: tableY - deckDragStart.y,
       };
       
-      // Check if deck has moved significantly (more than 5px)
+      // Update the specific deck being dragged
       if (isSplit && draggedDeckId) {
-        const currentPos = draggedDeckId === 'top' ? topHalfPosition : bottomHalfPosition;
-        const dx = Math.abs(newPosition.x - currentPos.x);
-        const dy = Math.abs(newPosition.y - currentPos.y);
-        if (dx > 5 || dy > 5) {
-          setDeckWasDragged(true);
-        }
-        
-        // Update the specific deck being dragged
         if (draggedDeckId === 'top') {
           setTopHalfPosition(newPosition);
         } else {
           setBottomHalfPosition(newPosition);
         }
       } else if (!isSplit) {
-        const dx = Math.abs(newPosition.x - deckPosition.x);
-        const dy = Math.abs(newPosition.y - deckPosition.y);
-        if (dx > 5 || dy > 5) {
-          setDeckWasDragged(true);
-        }
         setDeckPosition(newPosition);
       }
     };
 
-    const handleDeckEnd = (e: MouseEvent) => {
-      if (isSplit && draggedDeckId && deckWasDragged) {
-        // Only check for rejoin if the deck was actually dragged (not just clicked)
-        // Check if deck was dropped on the other deck
-        const tableX = (e.clientX - panOffset.x) / zoom;
-        const tableY = (e.clientY - panOffset.y) / zoom;
-        const dropPosition = { x: tableX, y: tableY };
-        
-        const DECK_HITBOX = 120; // Approximate deck size
-        const otherDeckPosition = draggedDeckId === 'top' ? bottomHalfPosition : topHalfPosition;
-        const distance = Math.sqrt(
-          Math.pow(dropPosition.x - otherDeckPosition.x, 2) + 
-          Math.pow(dropPosition.y - otherDeckPosition.y, 2)
-        );
-        
-        if (distance < DECK_HITBOX) {
-          // Rejoin decks - dragged deck goes on top
-          if (draggedDeckId === 'top') {
-            setDeck([...topHalf, ...bottomHalf]);
-          } else {
-            setDeck([...bottomHalf, ...topHalf]);
-          }
-          setIsSplit(false);
-          setTopHalf([]);
-          setBottomHalf([]);
-          // Reset deck position to the position of the deck that was dropped on
-          setDeckPosition(otherDeckPosition);
-        }
-      }
+    const handleDeckEnd = () => {
+      // No longer checking for drag-to-rejoin - only rejoin via button or shuffle
       setIsDraggingDeck(false);
       setDraggedDeckId(null);
-      setDeckWasDragged(false);
     };
 
     document.addEventListener('mousemove', handleDeckMove);
@@ -679,7 +648,6 @@ function App() {
                     e.stopPropagation();
                     setIsDraggingDeck(true);
                     setDraggedDeckId('top');
-                    setDeckWasDragged(false);
                     const tableX = (e.clientX - panOffset.x) / zoom;
                     const tableY = (e.clientY - panOffset.y) / zoom;
                     setDeckDragStart({
@@ -705,7 +673,6 @@ function App() {
                     e.stopPropagation();
                     setIsDraggingDeck(true);
                     setDraggedDeckId('bottom');
-                    setDeckWasDragged(false);
                     const tableX = (e.clientX - panOffset.x) / zoom;
                     const tableY = (e.clientY - panOffset.y) / zoom;
                     setDeckDragStart({
@@ -880,13 +847,34 @@ function App() {
         onClose={() => setShowInstructions(false)} 
       />
       {isDragging && (
-        <DropZone
-          isVisible={isDragging}
-          position={isSplit ? (topHalfPosition.y < bottomHalfPosition.y ? topHalfPosition : bottomHalfPosition) : deckPosition}
-          zoom={zoom}
-          panOffset={panOffset}
-          onBoundsUpdate={setDropZoneBounds}
-        />
+        <>
+          {isSplit ? (
+            <>
+              <DropZone
+                isVisible={isDragging}
+                position={topHalfPosition}
+                zoom={zoom}
+                panOffset={panOffset}
+                onBoundsUpdate={setTopHalfDropZoneBounds}
+              />
+              <DropZone
+                isVisible={isDragging}
+                position={bottomHalfPosition}
+                zoom={zoom}
+                panOffset={panOffset}
+                onBoundsUpdate={setBottomHalfDropZoneBounds}
+              />
+            </>
+          ) : (
+            <DropZone
+              isVisible={isDragging}
+              position={deckPosition}
+              zoom={zoom}
+              panOffset={panOffset}
+              onBoundsUpdate={setDropZoneBounds}
+            />
+          )}
+        </>
       )}
     </div>
   );
