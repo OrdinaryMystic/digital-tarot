@@ -1,8 +1,8 @@
 .drop-zone {
-  position: fixed;
+  position: absolute;
   pointer-events: none;
   z-index: 9999;
-  transition: opacity 0.2s ease;
+  /* No transition to prevent motion blur on mobile */
 }
 
 .drop-zone-border {

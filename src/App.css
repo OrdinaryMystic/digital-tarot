@@ -98,7 +98,11 @@
   }
 
   .zoom-controls {
-    display: none; /* Hide zoom controls on mobile */
+    display: flex; /* Show zoom controls on mobile since pinch-to-zoom doesn't work */
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+    margin-top: 8px;
   }
 
   .top-bar {

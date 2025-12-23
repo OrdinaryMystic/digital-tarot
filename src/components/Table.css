@@ -10,8 +10,19 @@
   height: 100%;
   position: relative;
   background: transparent; /* Transparent so background shows through */
-  transition: transform 0.1s ease-out; /* Smooth pan/zoom */
-  touch-action: pan-x pan-y pinch-zoom; /* Allow panning and native pinch-to-zoom */
+  /* No transitions to prevent motion blur on mobile */
+  touch-action: pan-x pan-y; /* Allow panning, disable native pinch-zoom */
+  /* Optimize for mobile performance - remove will-change to prevent lag */
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  /* Prevent motion blur on mobile */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Optimize for mobile performance */
+  -webkit-transform: translate3d(0, 0, 0);
+  /* Force hardware acceleration without will-change to reduce lag */
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
 }
 
 

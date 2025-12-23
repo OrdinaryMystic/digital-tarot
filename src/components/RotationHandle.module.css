@@ -1,0 +1,20 @@
+.rotationHandle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  cursor: grab;
+  z-index: 10001;
+  pointer-events: auto;
+  user-select: none;
+  transform-origin: center center;
+}
+
+.rotationHandle:active {
+  cursor: grabbing;
+}
+
+.rotationHandle svg {
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+

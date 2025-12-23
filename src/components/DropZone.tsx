@@ -36,21 +36,22 @@ const DropZone: React.FC<DropZoneProps> = ({ isVisible, position, zoom, panOffse
 
   if (!isVisible) return null;
 
-  // Convert table coordinates to screen coordinates
-  const screenX = position.x * zoom + panOffset.x;
-  const screenY = position.y * zoom + panOffset.y;
-  const width = 140 * zoom;
-  const height = 240 * zoom;
+  // The drop zone is positioned inside table-surface, so it inherits the transform
+  // We just need to position it at the deck location (no additional transform needed)
+  const width = 140;
+  const height = 240;
 
   return (
     <div
       ref={dropZoneRef}
       className="drop-zone"
       style={{
-        left: `${screenX}px`,
-        top: `${screenY}px`,
+        position: 'absolute',
+        left: `${position.x}px`,
+        top: `${position.y}px`,
         width: `${width}px`,
         height: `${height}px`,
+        pointerEvents: 'none', // Don't block interactions
       }}
     >
       <div className="drop-zone-border"></div>

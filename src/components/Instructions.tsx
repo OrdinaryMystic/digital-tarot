@@ -1,6 +1,8 @@
 import React from 'react';
 import './Instructions.css';
 
+const VERSION = '1.0.0-beta';
+
 interface InstructionsProps {
   isOpen: boolean;
   onClose: () => void;
@@ -47,6 +49,10 @@ const Instructions: React.FC<InstructionsProps> = ({ isOpen, onClose }) => {
             <div className="instruction-item">
               <strong>🌀 Spin Deck:</strong> Randomly reverses cards while keeping their order. This is perfect 
               for mixing upright and reversed cards without changing the sequence.
+            </div>
+            <div className="instruction-item">
+              <strong>🎲 Randomize Deck:</strong> Completely randomizes the deck using multiple shuffle operations. 
+              Perfect for starting with a fully randomized deck without manually shuffling multiple times.
             </div>
           </section>
 
@@ -99,23 +105,14 @@ const Instructions: React.FC<InstructionsProps> = ({ isOpen, onClose }) => {
             </p>
           </section>
 
-          <section>
-            <h2>Tips</h2>
-            <ul>
-              <li>You can zoom in and out using the zoom controls</li>
-              <li>Click and drag on empty space to pan around the table</li>
-              <li>Double-click any card to rotate it</li>
-            </ul>
-          </section>
-
           <section className="instructions-footer">
             <p>
               Created by <a href="https://ordinarymysticreadings.com" target="_blank" rel="noopener noreferrer"><strong>Ordinary Mystic</strong></a>. Follow on{' '}
-              <a href="https://www.tiktok.com/@ordinarymysticreadings" target="_blank" rel="noopener noreferrer">TikTok</a>.
-            </p>
-            <p>
-              Suggestions for making this tool better?{' '}
+              <a href="https://www.tiktok.com/@ordinarymysticreadings" target="_blank" rel="noopener noreferrer">TikTok</a>. Suggestions for making this tool better?{' '}
               <a href="mailto:ordinarymysticreadings@gmail.com">Email me</a>.
+            </p>
+            <p style={{ fontSize: '0.9em', marginTop: '0.5em' }}>
+              Digital Tarot v{VERSION}
             </p>
           </section>
         </div>

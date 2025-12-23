@@ -202,3 +202,29 @@ export const hybridShuffle = (deck: DeckCard[], seed: number): DeckCard[] => {
   return result;
 };
 
+// Complete randomization: Performs many shuffle operations for thorough randomization
+// This is used for the "randomize" button to ensure cards are truly randomized
+export const completeRandomize = (deck: DeckCard[], seed: number): DeckCard[] => {
+  const rng = seedrandom(seed.toString());
+  let result = [...deck];
+  
+  // For a 78-card deck, we need many more operations for true randomization
+  // Do 15-20 shuffle operations to ensure thorough mixing
+  const numOperations = Math.floor(rng() * 6) + 15; // 15-20 operations
+  
+  for (let i = 0; i < numOperations; i++) {
+    // Use different seed for each operation
+    const operationSeed = seed + i * 1000;
+    const operationRng = seedrandom(operationSeed.toString());
+    
+    // Alternate between techniques more evenly for better randomization
+    if (operationRng() < 0.5) {
+      result = riffleShuffle(result, operationSeed);
+    } else {
+      result = overhandShuffle(result, operationSeed);
+    }
+  }
+  
+  return result;
+};
+

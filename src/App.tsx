@@ -5,6 +5,7 @@ import { createFullDeck } from './utils/tarotDeck';
 import { setDeckPosition as setDeckPositionUtil, setTopHalfPosition as setTopHalfPositionUtil, setBottomHalfPosition as setBottomHalfPositionUtil } from './utils/cardPositioning';
 import seedrandom from 'seedrandom';
 import { useMysticalShuffle } from './hooks/useMysticalShuffle';
+import { completeRandomize } from './utils/realisticShuffle';
 import { useCardStack } from './hooks/useCardStack';
 import { useCardInteraction } from './hooks/useCardInteraction';
 import Table from './components/Table';
@@ -38,7 +39,12 @@ function App() {
     x: typeof window !== 'undefined' ? (window.innerWidth / 2 - 60) : 600, 
     y: 400 
   }));
-  const [zoom, setZoom] = useState(1); // Zoom scale factor (1 = 100%)
+  // Detect mobile device
+  const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  
+  // On mobile, start with smaller zoom (0.3 = 30%) to fit more on screen
+  // Desktop starts at 100% (1.0)
+  const [zoom, setZoom] = useState(isMobile ? 0.3 : 1); // Zoom scale factor (1 = 100%)
   const [deckPosition, setDeckPosition] = useState(() => ({ 
     x: typeof window !== 'undefined' ? (window.innerWidth / 2 - 60) : 600, 
     y: 200 // Position on table surface (below top bar)
@@ -57,6 +63,7 @@ function App() {
   const [isSessionLogOpen, setIsSessionLogOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [dropZoneBounds, setDropZoneBounds] = useState<{ left: number; right: number; top: number; bottom: number } | null>(null);
   const [topHalfDropZoneBounds, setTopHalfDropZoneBounds] = useState<{ left: number; right: number; top: number; bottom: number } | null>(null);
   const [bottomHalfDropZoneBounds, setBottomHalfDropZoneBounds] = useState<{ left: number; right: number; top: number; bottom: number } | null>(null);
@@ -162,7 +169,26 @@ function App() {
     }
   }, [drawnCards, handleReturnCard, dropZoneBounds, topHalfDropZoneBounds, bottomHalfDropZoneBounds, isSplit]);
 
-  const { dragStart, rotateStart, handleDoubleClick, isDragging, isRotating } = useCardInteraction(updateCard, bringToFront, handleDragEndWithCheck, zoom, panOffset);
+  const { dragStart, rotateStart, handleDoubleClick, isDragging } = useCardInteraction(updateCard, bringToFront, handleDragEndWithCheck, zoom, panOffset);
+
+  // Handle card selection
+  const handleCardSelect = useCallback((cardId: string) => {
+    setSelectedCardId(prev => prev === cardId ? null : cardId);
+  }, []);
+
+  // Handle clicking outside cards to deselect
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Don't deselect if clicking on a card, deck, or UI elements
+      if (!target.closest('.card, .deck, .top-bar, .session-log-drawer, .session-log-drawer-handle, .session-log-overlay')) {
+        setSelectedCardId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Check if instructions have been shown before
   useEffect(() => {
@@ -175,6 +201,9 @@ function App() {
 
   // Handle drawing a card from the deck (or from split decks)
   const handleDrawCard = useCallback((fromTopHalf: boolean = false) => {
+    // Deselect any selected card when drawing a new one
+    setSelectedCardId(null);
+    
     if (isSplit) {
       if (fromTopHalf) {
         if (topHalf.length === 0) return;
@@ -345,6 +374,45 @@ function App() {
       }, 300);
     }
   }, [deck, topHalf, bottomHalf, isSplit, seedGenerator]);
+
+  // Handle complete randomization of the deck
+  const handleRandomizeDeck = useCallback(() => {
+    if (isSplit) {
+      // Rejoin the two halves before randomizing
+      const combinedDeck = [...topHalf, ...bottomHalf];
+      setShuffleNotification({ message: 'Randomizing...', key: Date.now() });
+      setTimeout(() => {
+        // Use complete randomization (does 15-20 shuffle operations for thorough mixing)
+        const seed = seedGenerator.generateSeed();
+        seedGenerator.trackClick();
+        const randomized = completeRandomize(combinedDeck, seed);
+        setDeck(randomized);
+        setIsSplit(false);
+        setTopHalf([]);
+        setBottomHalf([]);
+        // Reset deck position to the average of the two halves
+        const avgX = (topHalfPosition.x + bottomHalfPosition.x) / 2;
+        const avgY = (topHalfPosition.y + bottomHalfPosition.y) / 2;
+        setDeckPosition({ x: avgX, y: avgY });
+        setTopHalfPositionUtil(null);
+        setBottomHalfPositionUtil(null);
+        setShuffleNotification({ message: 'Randomized!', key: Date.now() });
+        setTimeout(() => setShuffleNotification(null), 800);
+      }, 300);
+    } else {
+      if (deck.length === 0) return;
+      setShuffleNotification({ message: 'Randomizing...', key: Date.now() });
+      setTimeout(() => {
+        // Use complete randomization (does 15-20 shuffle operations for thorough mixing)
+        const seed = seedGenerator.generateSeed();
+        seedGenerator.trackClick();
+        const randomized = completeRandomize(deck, seed);
+        setDeck(randomized);
+        setShuffleNotification({ message: 'Randomized!', key: Date.now() });
+        setTimeout(() => setShuffleNotification(null), 800);
+      }, 300);
+    }
+  }, [deck, topHalf, bottomHalf, isSplit, seedGenerator, topHalfPosition, bottomHalfPosition]);
 
   // Continuous overhand shuffling effect (chunk by chunk)
   const overhandStateRef = React.useRef<{
@@ -560,20 +628,42 @@ function App() {
   useEffect(() => {
     if (!isPanning) return;
 
+    // Optimize for mobile: use direct state updates with RAF batching for smooth performance
+    let rafId: number | null = null;
+    let pendingUpdate: { x: number; y: number } | null = null;
+
     const handlePanMove = (e: MouseEvent | TouchEvent) => {
       // Prevent default for touch to avoid scrolling
       if ('touches' in e) {
         e.preventDefault();
       }
-      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-      setPanOffset({
+      
+      const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+      
+      // Store pending update
+      pendingUpdate = {
         x: clientX - panStart.x,
         y: clientY - panStart.y,
-      });
+      };
+
+      // Batch updates using RAF for smooth performance
+      if (rafId === null) {
+        rafId = requestAnimationFrame(() => {
+          if (pendingUpdate) {
+            setPanOffset(pendingUpdate);
+            pendingUpdate = null;
+          }
+          rafId = null;
+        });
+      }
     };
 
     const handlePanEnd = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
       setIsPanning(false);
     };
 
@@ -583,12 +673,16 @@ function App() {
     document.addEventListener('touchend', handlePanEnd);
 
     return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
       document.removeEventListener('mousemove', handlePanMove);
       document.removeEventListener('mouseup', handlePanEnd);
       document.removeEventListener('touchmove', handlePanMove);
       document.removeEventListener('touchend', handlePanEnd);
     };
-  }, [isPanning, panStart]);
+  }, [isPanning, panStart, isMobile]);
 
   // Handle deck dragging
   const handleDeckMouseDown = useCallback((e: React.MouseEvent) => {
@@ -665,11 +759,44 @@ function App() {
         onDragStart={dragStart}
         onRotateStart={rotateStart}
         onDoubleClick={(card) => handleDoubleClick(card, updateCard)}
+        onCardSelect={handleCardSelect}
+        selectedCardId={selectedCardId}
         isDragging={isDragging}
-        isRotating={isRotating}
         zoom={zoom}
         panOffset={panOffset}
         onPanStart={handlePanStart}
+        dropZones={
+          isDragging ? (
+            <>
+              {isSplit ? (
+                <>
+                  <DropZone
+                    isVisible={isDragging}
+                    position={topHalfPosition}
+                    zoom={zoom}
+                    panOffset={panOffset}
+                    onBoundsUpdate={setTopHalfDropZoneBounds}
+                  />
+                  <DropZone
+                    isVisible={isDragging}
+                    position={bottomHalfPosition}
+                    zoom={zoom}
+                    panOffset={panOffset}
+                    onBoundsUpdate={setBottomHalfDropZoneBounds}
+                  />
+                </>
+              ) : (
+                <DropZone
+                  isVisible={isDragging}
+                  position={deckPosition}
+                  zoom={zoom}
+                  panOffset={panOffset}
+                  onBoundsUpdate={setDropZoneBounds}
+                />
+              )}
+            </>
+          ) : null
+        }
         deckElement={
           isSplit ? (
             <>
@@ -838,6 +965,16 @@ function App() {
             disabled={isSplit ? (topHalf.length === 0 && bottomHalf.length === 0) : deck.length === 0}
           />
           <IconButton
+            icon="🎲"
+            tooltip="Randomize Deck"
+            onClick={() => {
+              seedGenerator.trackClick();
+              handleRandomizeDeck();
+              setIsMobileMenuOpen(false);
+            }}
+            disabled={isSplit ? (topHalf.length === 0 && bottomHalf.length === 0) : deck.length === 0}
+          />
+          <IconButton
             icon={drawFaceUp ? "👁️" : "🙈"}
             tooltip={drawFaceUp ? "Draw Face Up" : "Draw Face Down"}
             onClick={() => {
@@ -889,13 +1026,13 @@ function App() {
             <IconButton
               icon="➖"
               tooltip="Zoom Out"
-              onClick={() => setZoom(prev => Math.max(0.5, prev - 0.1))}
+              onClick={() => setZoom(prev => Math.max(isMobile ? 0.2 : 0.5, prev - 0.1))}
             />
             <span className="zoom-value">{Math.round(zoom * 100)}%</span>
             <IconButton
               icon="➕"
               tooltip="Zoom In"
-              onClick={() => setZoom(prev => Math.min(2, prev + 0.1))}
+              onClick={() => setZoom(prev => Math.min(isMobile ? 1.5 : 2, prev + 0.1))}
             />
           </div>
         </div>
@@ -904,36 +1041,6 @@ function App() {
         isOpen={showInstructions} 
         onClose={() => setShowInstructions(false)} 
       />
-      {isDragging && (
-        <>
-          {isSplit ? (
-            <>
-              <DropZone
-                isVisible={isDragging}
-                position={topHalfPosition}
-                zoom={zoom}
-                panOffset={panOffset}
-                onBoundsUpdate={setTopHalfDropZoneBounds}
-              />
-              <DropZone
-                isVisible={isDragging}
-                position={bottomHalfPosition}
-                zoom={zoom}
-                panOffset={panOffset}
-                onBoundsUpdate={setBottomHalfDropZoneBounds}
-              />
-            </>
-          ) : (
-            <DropZone
-              isVisible={isDragging}
-              position={deckPosition}
-              zoom={zoom}
-              panOffset={panOffset}
-              onBoundsUpdate={setDropZoneBounds}
-            />
-          )}
-        </>
-      )}
     </div>
   );
 }

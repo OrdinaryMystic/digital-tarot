@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { CardInstance, Card } from '../types';
+import { RotationHandle } from './RotationHandle';
 import styles from './Card.module.css';
 
 interface CardProps {
@@ -7,23 +8,27 @@ interface CardProps {
   card: Card;
   onUpdate: (card: CardInstance) => void;
   onDragStart: (e: React.MouseEvent | React.TouchEvent, card: CardInstance) => void;
-  onRotateStart: (e: React.MouseEvent | React.TouchEvent, card: CardInstance) => void;
   onDoubleClick: (card: CardInstance) => void;
+  onRotateStart?: (e: React.MouseEvent | React.TouchEvent, card: CardInstance) => void;
+  onSelect?: (cardId: string) => void;
   isDragging?: boolean;
-  isRotating?: boolean;
+  isSelected?: boolean;
 }
 
 export const CardComponent: React.FC<CardProps> = ({
   cardInstance,
   card,
   onDragStart,
-  onRotateStart,
   onDoubleClick,
+  onRotateStart,
+  onSelect,
   isDragging = false,
-  isRotating = false,
+  isSelected = false,
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [imageError, setImageError] = useState(false);
+  const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
+  const wasDraggedRef = useRef(false);
 
   const handleDoubleClick = () => {
     onDoubleClick(cardInstance);
@@ -32,15 +37,48 @@ export const CardComponent: React.FC<CardProps> = ({
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     // Stop propagation to prevent table panning
     e.stopPropagation();
-    // If clicking on rotate handle, it will handle its own event
-    // Otherwise, start dragging
+    
+    // Track initial mouse position to detect if it was a drag
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    mouseDownPosRef.current = { x: clientX, y: clientY };
+    wasDraggedRef.current = false;
+    
     onDragStart(e, cardInstance);
   };
 
-  const handleRotateMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-    e.stopPropagation(); // Prevent drag from starting
-    onRotateStart(e, cardInstance);
+  const handleMouseUp = (e: React.MouseEvent | React.TouchEvent) => {
+    // Only select if it was a click (not a drag)
+    if (!wasDraggedRef.current && onSelect) {
+      onSelect(cardInstance.id);
+    }
+    mouseDownPosRef.current = null;
+    wasDraggedRef.current = false;
   };
+
+  // Track mouse movement to detect drags
+  React.useEffect(() => {
+    const handleMouseMove = (e: MouseEvent | TouchEvent) => {
+      if (mouseDownPosRef.current) {
+        const clientX = 'touches' in e && e.touches.length > 0 ? e.touches[0].clientX : (e as MouseEvent).clientX;
+        const clientY = 'touches' in e && e.touches.length > 0 ? e.touches[0].clientY : (e as MouseEvent).clientY;
+        const dx = Math.abs(clientX - mouseDownPosRef.current.x);
+        const dy = Math.abs(clientY - mouseDownPosRef.current.y);
+        // If mouse moved more than 5px, it was a drag
+        if (dx > 5 || dy > 5) {
+          wasDraggedRef.current = true;
+        }
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('touchmove', handleMouseMove);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('touchmove', handleMouseMove);
+    };
+  }, []);
 
   // Calculate total rotation: base rotation + 180 degrees if reversed
   const totalRotation = cardInstance.rotation + (cardInstance.isReversed ? 180 : 0);
@@ -49,7 +87,7 @@ export const CardComponent: React.FC<CardProps> = ({
     transform,
     zIndex: cardInstance.zIndex,
     position: 'absolute',
-    cursor: isDragging ? 'grabbing' : isRotating ? 'grabbing' : 'grab',
+    cursor: isDragging ? 'grabbing' : 'grab',
     transformOrigin: 'center center',
   };
 
@@ -57,10 +95,12 @@ export const CardComponent: React.FC<CardProps> = ({
     <div
       ref={cardRef}
       data-card-id={cardInstance.id}
-      className={`${styles.card} ${isDragging ? styles.dragging : ''} ${isRotating ? styles.rotating : ''}`}
+      className={`${styles.card} ${isDragging ? styles.dragging : ''} ${isSelected ? styles.selected : ''}`}
       style={style}
       onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
       onTouchStart={handleMouseDown}
+      onTouchEnd={handleMouseUp}
       onDoubleClick={handleDoubleClick}
     >
       <div className={styles.cardInner}>
@@ -99,12 +139,11 @@ export const CardComponent: React.FC<CardProps> = ({
             />
           </div>
         )}
-        {!isDragging && !isRotating && (
-          <div 
-            className={styles.rotateHandle}
-            onMouseDown={handleRotateMouseDown}
-            onTouchStart={handleRotateMouseDown}
-          ></div>
+        {isSelected && onRotateStart && (
+          <RotationHandle
+            cardInstance={cardInstance}
+            onRotateStart={(e) => onRotateStart(e, cardInstance)}
+          />
         )}
       </div>
     </div>

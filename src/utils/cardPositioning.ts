@@ -12,7 +12,7 @@ let deckPositionRef = { x: typeof window !== 'undefined' ? (window.innerWidth / 
 let topHalfPositionRef: { x: number; y: number } | null = null;
 let bottomHalfPositionRef: { x: number; y: number } | null = null;
 const DECK_WIDTH = 140;
-const DISCARD_OFFSET_X = 40; // Distance from deck right edge to discard pile
+const DISCARD_OFFSET_X = 70; // Distance from deck right edge to discard pile
 
 export const setDeckPosition = (position: { x: number; y: number }) => {
   deckPositionRef = position;

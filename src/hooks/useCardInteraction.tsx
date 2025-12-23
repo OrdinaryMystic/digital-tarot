@@ -25,6 +25,8 @@ export const useCardInteraction = (
   const cardStartRotationRef = useRef<number>(0);
   const rotateStartAngleRef = useRef<number>(0);
   const cardCenterRef = useRef<{ x: number; y: number } | null>(null);
+  const lastAngleRef = useRef<number>(0);
+  const totalRotationDeltaRef = useRef<number>(0);
   const onCardUpdateRef = useRef(onCardUpdate);
   const bringToFrontRef = useRef(bringToFront);
   const onDragEndRef = useRef(onDragEnd);
@@ -32,6 +34,7 @@ export const useCardInteraction = (
   const draggedCardIdRef = useRef<string | null>(null);
   const zoomRef = useRef(zoom ?? 1);
   const panOffsetRef = useRef(panOffset ?? { x: 0, y: 0 });
+  const hasStartedDraggingRef = useRef(false);
 
   // Keep callback refs updated
   onCardUpdateRef.current = onCardUpdate;
@@ -48,6 +51,16 @@ export const useCardInteraction = (
     // Get client coordinates from either MouseEvent or TouchEvent
     const clientX = 'touches' in e && e.touches.length > 0 ? e.touches[0].clientX : (e as MouseEvent).clientX;
     const clientY = 'touches' in e && e.touches.length > 0 ? e.touches[0].clientY : (e as MouseEvent).clientY;
+
+    // Check if mouse has moved enough to be considered a drag (5px threshold)
+    const dxScreen = Math.abs(clientX - dragStartPosRef.current.x);
+    const dyScreen = Math.abs(clientY - dragStartPosRef.current.y);
+    
+    // Only set isDragging to true once we detect actual movement
+    if (!hasStartedDraggingRef.current && (dxScreen > 5 || dyScreen > 5)) {
+      hasStartedDraggingRef.current = true;
+      setIsDragging(true);
+    }
 
     // Convert mouse/touch coordinates to table-surface coordinates (accounting for zoom and pan)
     const currentTableX = (clientX - panOffsetRef.current.x) / zoomRef.current;
@@ -80,6 +93,7 @@ export const useCardInteraction = (
     const card = currentCardRef.current;
     const cardId = draggedCardIdRef.current;
     setIsDragging(false);
+    hasStartedDraggingRef.current = false;
     currentCardRef.current = null;
     dragStartPosRef.current = null;
     cardStartPosRef.current = null;
@@ -125,7 +139,10 @@ export const useCardInteraction = (
     latestZIndexRef.current.set(card.id, newZIndex);
     draggedCardIdRef.current = card.id;
     
-    setIsDragging(true);
+    // Don't set isDragging to true yet - wait until mouse actually moves
+    // This prevents drop zones from appearing on simple clicks
+    setIsDragging(false);
+    hasStartedDraggingRef.current = false;
     currentCardRef.current = { ...card, zIndex: newZIndex };
     
     // Store mouse/touch position in screen coordinates (will be converted to table coords in dragMove)
@@ -139,6 +156,7 @@ export const useCardInteraction = (
     document.addEventListener('touchmove', dragMove, { passive: false });
     document.addEventListener('touchend', dragEnd);
   }, [dragMove, dragEnd]);
+
 
   // Rotate move handler
   const rotateMove = useCallback((e: MouseEvent | TouchEvent) => {
@@ -155,19 +173,26 @@ export const useCardInteraction = (
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
+    // Calculate angle from card center to current mouse position
     const dx = clientX - cardCenterRef.current.x;
     const dy = clientY - cardCenterRef.current.y;
     const currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
     
-    // Calculate angle difference, handling wrap-around
-    let angleDiff = currentAngle - rotateStartAngleRef.current;
+    // Calculate angle difference from last position
+    let angleDiff = currentAngle - lastAngleRef.current;
     
-    // Normalize angle difference to -180 to 180 range to avoid large jumps
-    while (angleDiff > 180) angleDiff -= 360;
-    while (angleDiff < -180) angleDiff += 360;
+    // Normalize angle difference to -180 to 180 range
+    if (angleDiff > 180) angleDiff -= 360;
+    if (angleDiff < -180) angleDiff += 360;
     
-    // Apply rotation with the calculated difference
-    const newRotation = cardStartRotationRef.current + angleDiff;
+    // Accumulate the rotation delta
+    totalRotationDeltaRef.current += angleDiff;
+    
+    // Update last angle for next calculation
+    lastAngleRef.current = currentAngle;
+    
+    // Apply rotation with the accumulated difference
+    const newRotation = cardStartRotationRef.current + totalRotationDeltaRef.current;
     
     // Get the latest z-index from the map (set by bringToFront)
     const latestZIndex = latestZIndexRef.current.get(card.id) ?? card.zIndex;
@@ -192,7 +217,7 @@ export const useCardInteraction = (
     document.removeEventListener('touchend', rotateEnd);
   }, [rotateMove]);
 
-  // Rotate handlers
+  // Rotate start handler
   const rotateStart = useCallback((e: React.MouseEvent | React.TouchEvent, card: CardInstance) => {
     e.preventDefault();
     e.stopPropagation();
@@ -208,23 +233,42 @@ export const useCardInteraction = (
     document.removeEventListener('touchend', rotateEnd);
     
     setIsRotating(true);
-    currentCardRef.current = { ...card, zIndex: newZIndex }; // Create a fresh copy with updated z-index
+    currentCardRef.current = { ...card, zIndex: newZIndex };
     cardStartRotationRef.current = card.rotation;
+    totalRotationDeltaRef.current = 0; // Reset accumulated rotation
 
     // Calculate card center in screen coordinates using bounding box
     // This accounts for the card's current rotation and position
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    cardCenterRef.current = {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-    };
+    const cardElement = (e.currentTarget as HTMLElement).closest('[data-card-id]');
+    const rect = cardElement?.getBoundingClientRect();
+    if (rect) {
+      cardCenterRef.current = {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      };
+    } else {
+      // Fallback: calculate from card position and dimensions
+      // Convert table coordinates to screen coordinates
+      const CARD_WIDTH = 140;
+      const CARD_HEIGHT = 240;
+      const centerTableX = card.position.x + CARD_WIDTH / 2;
+      const centerTableY = card.position.y + CARD_HEIGHT / 2;
+      
+      // Convert to screen coordinates accounting for zoom and pan
+      cardCenterRef.current = {
+        x: centerTableX * zoomRef.current + panOffsetRef.current.x,
+        y: centerTableY * zoomRef.current + panOffsetRef.current.y,
+      };
+    }
 
     // Calculate initial angle from card center to mouse/touch position
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     const dx = clientX - cardCenterRef.current.x;
     const dy = clientY - cardCenterRef.current.y;
-    rotateStartAngleRef.current = Math.atan2(dy, dx) * (180 / Math.PI);
+    const startAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+    rotateStartAngleRef.current = startAngle;
+    lastAngleRef.current = startAngle; // Initialize last angle
     
     document.addEventListener('mousemove', rotateMove);
     document.addEventListener('mouseup', rotateEnd);

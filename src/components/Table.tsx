@@ -8,14 +8,16 @@ interface TableProps {
   getCardById: (cardId: string) => Card | undefined;
   onCardUpdate: (card: CardInstance) => void;
   onDragStart: (e: React.MouseEvent | React.TouchEvent, card: CardInstance) => void;
-  onRotateStart: (e: React.MouseEvent | React.TouchEvent, card: CardInstance) => void;
+  onRotateStart?: (e: React.MouseEvent | React.TouchEvent, card: CardInstance) => void;
   onDoubleClick: (card: CardInstance) => void;
+  onCardSelect?: (cardId: string) => void;
+  selectedCardId?: string | null;
   isDragging?: boolean;
-  isRotating?: boolean;
   zoom?: number;
   panOffset?: { x: number; y: number };
   onPanStart?: (e: React.MouseEvent | React.TouchEvent) => void;
   deckElement?: React.ReactNode;
+  dropZones?: React.ReactNode;
 }
 
 const Table: React.FC<TableProps> = ({
@@ -25,12 +27,14 @@ const Table: React.FC<TableProps> = ({
   onDragStart,
   onRotateStart,
   onDoubleClick,
+  onCardSelect,
+  selectedCardId,
   isDragging = false,
-  isRotating = false,
   zoom = 1,
   panOffset = { x: 0, y: 0 },
   onPanStart,
   deckElement,
+  dropZones,
 }) => {
   return (
     <div className="table">
@@ -39,12 +43,13 @@ const Table: React.FC<TableProps> = ({
         onMouseDown={onPanStart || undefined}
         onTouchStart={onPanStart || undefined}
         style={{
-          transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+          transform: `translate3d(${panOffset.x}px, ${panOffset.y}px, 0) scale(${zoom})`,
           transformOrigin: 'top center',
-          cursor: isDragging || isRotating ? 'grabbing' : 'grab',
+          cursor: isDragging ? 'grabbing' : 'grab',
         }}
       >
         {deckElement}
+        {dropZones}
         {drawnCards.map(cardInstance => {
           const card = getCardById(cardInstance.cardId);
           if (!card) return null;
@@ -58,8 +63,9 @@ const Table: React.FC<TableProps> = ({
               onDragStart={onDragStart}
               onRotateStart={onRotateStart}
               onDoubleClick={onDoubleClick}
+              onSelect={onCardSelect}
               isDragging={isDragging}
-              isRotating={isRotating}
+              isSelected={selectedCardId === cardInstance.id}
             />
           );
         })}

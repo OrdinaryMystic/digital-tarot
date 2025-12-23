@@ -13,9 +13,8 @@ const Deck: React.FC<DeckProps> = ({ cardCount, onDraw, deckRef, onMouseDown }) 
   const [wasDragged, setWasDragged] = useState(false);
   const mouseDownPosRef = React.useRef<{ x: number; y: number } | null>(null);
   
-  // Always show full deck visually (78 cards = ~10 layers)
-  // Fixed height - always looks the same
-  const VISIBLE_LAYERS = 10; // Always show 10 layers to represent full deck
+  // Calculate number of layers based on card count (1-10 layers for 1-78 cards)
+  const visibleLayers = Math.max(1, Math.round(1 + (cardCount - 1) * 9 / 77));
   const deckHeight = 240; // Fixed height (same as card height)
   const deckWidth = 140; // Fixed width (same as card width)
 
@@ -77,8 +76,8 @@ const Deck: React.FC<DeckProps> = ({ cardCount, onDraw, deckRef, onMouseDown }) 
       style={{ width: `${deckWidth}px`, height: `${deckHeight}px` }}
     >
       <div className="deck-cards">
-        {/* Always show full deck visually (10 layers representing 78 cards) */}
-        {Array.from({ length: VISIBLE_LAYERS }).map((_, i) => (
+        {/* Render layers based on card count (1-10 layers for 1-78 cards) */}
+        {Array.from({ length: visibleLayers }).map((_, i) => (
           <div
             key={i}
             className="deck-card"
