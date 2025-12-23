@@ -57,6 +57,7 @@ function App() {
   const [isSessionLogOpen, setIsSessionLogOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [dropZoneBounds, setDropZoneBounds] = useState<{ left: number; right: number; top: number; bottom: number } | null>(null);
   
   const {
     shuffleOnce,
@@ -79,61 +80,74 @@ function App() {
 
   // Handle returning a single card to the deck at a random position
   const handleReturnCard = useCallback((cardInstance: CardInstance) => {
+    console.log('handleReturnCard called with:', cardInstance);
     const returned = returnCard(cardInstance.id);
+    console.log('returnCard returned:', returned);
     if (returned) {
       // Add card back to deck with its reversal state at a random position
       const card = getCardById(returned.cardId);
+      console.log('getCardById returned:', card);
       if (card) {
-        setDeck(prev => {
-          const newDeck = [...prev, { card, isReversed: returned.isReversed }];
-          // Shuffle to random position
-          return shuffleOnce(newDeck);
-        });
+        if (isSplit) {
+          // If split, add to bottom half
+          setBottomHalf(prev => {
+            const newHalf = [...prev, { card, isReversed: returned.isReversed }];
+            return shuffleOnce(newHalf);
+          });
+          console.log('Added to bottom half (split deck)');
+        } else {
+          setDeck(prev => {
+            const newDeck = [...prev, { card, isReversed: returned.isReversed }];
+            // Shuffle to random position
+            return shuffleOnce(newDeck);
+          });
+          console.log('Added to deck');
+        }
       }
     }
-  }, [returnCard, getCardById, seedGenerator, shuffleOnce]);
+  }, [returnCard, getCardById, seedGenerator, shuffleOnce, isSplit]);
 
   // Handle drag end - check if card was dropped on deck
   const handleDragEndWithCheck = useCallback((e: MouseEvent, cardId: string) => {
-    // Check if card was dropped in the drop zone (near deck position)
+    // Check if card was dropped in the drop zone using actual DOM bounds
     const mouseX = e.clientX;
     const mouseY = e.clientY;
     
-    // Convert mouse coordinates to table coordinates
-    const tableX = (mouseX - panOffset.x) / zoom;
-    const tableY = (mouseY - panOffset.y) / zoom;
-    
-    // Determine deck position to check against
-    let deckPos = deckPosition;
-    if (isSplit) {
-      // If split, check both positions - use whichever is closer or check both
-      const topDist = Math.sqrt(
-        Math.pow(tableX - topHalfPosition.x, 2) + Math.pow(tableY - topHalfPosition.y, 2)
+    // Use the actual drop zone bounds from the DOM element
+    if (dropZoneBounds) {
+      const padding = 20; // Padding for easier dropping
+      const inBounds = (
+        mouseX >= dropZoneBounds.left - padding &&
+        mouseX <= dropZoneBounds.right + padding &&
+        mouseY >= dropZoneBounds.top - padding &&
+        mouseY <= dropZoneBounds.bottom + padding
       );
-      const bottomDist = Math.sqrt(
-        Math.pow(tableX - bottomHalfPosition.x, 2) + Math.pow(tableY - bottomHalfPosition.y, 2)
-      );
-      deckPos = topDist < bottomDist ? topHalfPosition : bottomHalfPosition;
-    }
-    
-    // Check if mouse is within drop zone bounds (140x240 card size + some padding)
-    const dropZoneWidth = 140;
-    const dropZoneHeight = 240;
-    const padding = 20; // Extra padding for easier dropping
-    
-    if (
-      tableX >= deckPos.x - padding &&
-      tableX <= deckPos.x + dropZoneWidth + padding &&
-      tableY >= deckPos.y - padding &&
-      tableY <= deckPos.y + dropZoneHeight + padding
-    ) {
-      // Find the card that was being dragged
-      const cardInstance = drawnCards.find(c => c.id === cardId);
-      if (cardInstance) {
-        handleReturnCard(cardInstance);
+      
+      console.log('Drop zone check:', {
+        mouseX,
+        mouseY,
+        dropZoneBounds,
+        padding,
+        inBounds
+      });
+      
+      if (inBounds) {
+        console.log('✅ Card dropped in drop zone!');
+        // Find the card that was being dragged
+        const cardInstance = drawnCards.find(c => c.id === cardId);
+        if (cardInstance) {
+          console.log('Calling handleReturnCard for:', cardInstance);
+          handleReturnCard(cardInstance);
+        } else {
+          console.error('❌ Card instance not found! cardId:', cardId, 'Available cards:', drawnCards.map(c => c.id));
+        }
+      } else {
+        console.log('❌ Card NOT in drop zone bounds');
       }
+    } else {
+      console.log('Drop zone bounds not available yet');
     }
-  }, [drawnCards, handleReturnCard, isSplit, deckPosition, topHalfPosition, bottomHalfPosition, zoom, panOffset]);
+  }, [drawnCards, handleReturnCard, dropZoneBounds]);
 
   const { dragStart, rotateStart, handleDoubleClick, isDragging, isRotating } = useCardInteraction(updateCard, bringToFront, handleDragEndWithCheck, zoom, panOffset);
 
@@ -867,10 +881,11 @@ function App() {
       />
       {isDragging && (
         <DropZone
+          isVisible={isDragging}
           position={isSplit ? (topHalfPosition.y < bottomHalfPosition.y ? topHalfPosition : bottomHalfPosition) : deckPosition}
           zoom={zoom}
           panOffset={panOffset}
-          isVisible={isDragging}
+          onBoundsUpdate={setDropZoneBounds}
         />
       )}
     </div>

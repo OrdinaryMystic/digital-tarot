@@ -1,14 +1,36 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import './DropZone.css';
 
 interface DropZoneProps {
+  isVisible: boolean;
   position: { x: number; y: number };
   zoom: number;
   panOffset: { x: number; y: number };
-  isVisible: boolean;
+  onBoundsUpdate?: (bounds: { left: number; right: number; top: number; bottom: number }) => void;
 }
 
-const DropZone: React.FC<DropZoneProps> = ({ position, zoom, panOffset, isVisible }) => {
+const DropZone: React.FC<DropZoneProps> = ({ isVisible, position, zoom, panOffset, onBoundsUpdate }) => {
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isVisible && dropZoneRef.current && onBoundsUpdate) {
+      const updateBounds = () => {
+        const rect = dropZoneRef.current?.getBoundingClientRect();
+        if (rect) {
+          onBoundsUpdate({
+            left: rect.left,
+            right: rect.right,
+            top: rect.top,
+            bottom: rect.bottom,
+          });
+        }
+      };
+      updateBounds();
+      window.addEventListener('resize', updateBounds);
+      return () => window.removeEventListener('resize', updateBounds);
+    }
+  }, [isVisible, onBoundsUpdate, position, zoom, panOffset]);
+
   if (!isVisible) return null;
 
   // Convert table coordinates to screen coordinates
@@ -19,6 +41,7 @@ const DropZone: React.FC<DropZoneProps> = ({ position, zoom, panOffset, isVisibl
 
   return (
     <div
+      ref={dropZoneRef}
       className="drop-zone"
       style={{
         left: `${screenX}px`,
@@ -27,9 +50,7 @@ const DropZone: React.FC<DropZoneProps> = ({ position, zoom, panOffset, isVisibl
         height: `${height}px`,
       }}
     >
-      <div className="drop-zone-border">
-        <div className="drop-zone-text">Drop to Return</div>
-      </div>
+      <div className="drop-zone-border"></div>
     </div>
   );
 };

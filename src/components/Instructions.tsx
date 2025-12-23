@@ -102,9 +102,8 @@ const Instructions: React.FC<InstructionsProps> = ({ isOpen, onClose }) => {
           <section>
             <h2>Tips</h2>
             <ul>
-              <li>You can zoom in and out using the zoom controls, or pinch to zoom on mobile devices</li>
+              <li>You can zoom in and out using the zoom controls</li>
               <li>Click and drag on empty space to pan around the table</li>
-              <li>On mobile, the toolbar collapses into a hamburger menu</li>
               <li>Double-click any card to rotate it</li>
             </ul>
           </section>

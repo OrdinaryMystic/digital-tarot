@@ -91,8 +91,23 @@ export const useCardInteraction = (
     // Call external drag end handler if provided (for deck drop detection)
     // Convert TouchEvent to MouseEvent-like object for compatibility
     if (onDragEndRef.current && card && cardId) {
-      const clientX = 'touches' in e && e.touches.length > 0 ? e.touches[0].clientX : ('changedTouches' in e && e.changedTouches.length > 0 ? e.changedTouches[0].clientX : 0);
-      const clientY = 'touches' in e && e.touches.length > 0 ? e.touches[0].clientY : ('changedTouches' in e && e.changedTouches.length > 0 ? e.changedTouches[0].clientY : 0);
+      let clientX = 0;
+      let clientY = 0;
+      
+      if (e instanceof MouseEvent) {
+        // Regular mouse event - use coordinates directly
+        clientX = e.clientX;
+        clientY = e.clientY;
+      } else if ('changedTouches' in e && e.changedTouches.length > 0) {
+        // Touch event - use changedTouches (available on touchend)
+        clientX = e.changedTouches[0].clientX;
+        clientY = e.changedTouches[0].clientY;
+      } else if ('touches' in e && e.touches.length > 0) {
+        // Touch event - fallback to touches if changedTouches not available
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      }
+      
       const mouseEvent = { clientX, clientY } as MouseEvent;
       onDragEndRef.current(mouseEvent, cardId);
     }
