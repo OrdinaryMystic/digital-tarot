@@ -6,8 +6,8 @@ interface CardProps {
   cardInstance: CardInstance;
   card: Card;
   onUpdate: (card: CardInstance) => void;
-  onDragStart: (e: React.MouseEvent, card: CardInstance) => void;
-  onRotateStart: (e: React.MouseEvent, card: CardInstance) => void;
+  onDragStart: (e: React.MouseEvent | React.TouchEvent, card: CardInstance) => void;
+  onRotateStart: (e: React.MouseEvent | React.TouchEvent, card: CardInstance) => void;
   onDoubleClick: (card: CardInstance) => void;
   isDragging?: boolean;
   isRotating?: boolean;

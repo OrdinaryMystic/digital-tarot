@@ -41,13 +41,17 @@ export const useCardInteraction = (
   panOffsetRef.current = panOffset ?? { x: 0, y: 0 };
 
   // Drag move handler (using refs to avoid closure issues)
-  const dragMove = useCallback((e: MouseEvent) => {
+  const dragMove = useCallback((e: MouseEvent | TouchEvent) => {
     const card = currentCardRef.current;
     if (!card || !dragStartPosRef.current || !cardStartPosRef.current) return;
 
-    // Convert mouse coordinates to table-surface coordinates (accounting for zoom and pan)
-    const currentTableX = (e.clientX - panOffsetRef.current.x) / zoomRef.current;
-    const currentTableY = (e.clientY - panOffsetRef.current.y) / zoomRef.current;
+    // Get client coordinates from either MouseEvent or TouchEvent
+    const clientX = 'touches' in e && e.touches.length > 0 ? e.touches[0].clientX : (e as MouseEvent).clientX;
+    const clientY = 'touches' in e && e.touches.length > 0 ? e.touches[0].clientY : (e as MouseEvent).clientY;
+
+    // Convert mouse/touch coordinates to table-surface coordinates (accounting for zoom and pan)
+    const currentTableX = (clientX - panOffsetRef.current.x) / zoomRef.current;
+    const currentTableY = (clientY - panOffsetRef.current.y) / zoomRef.current;
     const startTableX = (dragStartPosRef.current.x - panOffsetRef.current.x) / zoomRef.current;
     const startTableY = (dragStartPosRef.current.y - panOffsetRef.current.y) / zoomRef.current;
 
