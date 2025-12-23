@@ -1,63 +1,112 @@
-.drawn-cards-log {
+
+/* Overlay */
+.session-log-overlay {
   position: fixed;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 250px;
-  max-height: 70vh;
-  background: rgba(0, 0, 0, 0.85);
-  border-radius: 8px;
-  padding: 16px;
-  z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  overflow-y: auto;
-  overflow-x: hidden;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 0.3s ease;
 }
 
-/* Mobile styles for session log */
-@media (max-width: 768px) {
-  .drawn-cards-log {
-    right: 10px;
-    width: calc(100vw - 20px);
-    max-width: 300px;
-    top: auto;
-    bottom: 20px;
-    transform: none;
-    max-height: 40vh;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
-.drawn-cards-log-header {
+/* Drawer panel */
+.session-log-drawer {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 320px;
+  max-width: 90vw;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+.session-log-drawer.open {
+  transform: translateX(0);
+}
+
+.session-log-header {
   color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  text-align: center;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  user-select: none;
+  flex-shrink: 0;
 }
 
-.drawn-cards-log-header:hover {
-  color: rgba(255, 255, 255, 1);
+.session-log-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 32px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s ease;
 }
 
-.drawn-cards-log-toggle {
+.session-log-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Content area */
+.session-log-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.drawn-cards-log-stats {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 12px;
+}
+
+.drawn-cards-log-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
   font-size: 12px;
-  opacity: 0.7;
-  transition: opacity 0.2s;
+  color: rgba(255, 255, 255, 0.8);
 }
 
-.drawn-cards-log-header:hover .drawn-cards-log-toggle {
-  opacity: 1;
+.drawn-cards-log-stat-label {
+  color: rgba(255, 255, 255, 0.7);
 }
 
-.drawn-cards-log.minimized {
-  max-height: 50px;
-  overflow: hidden;
+.drawn-cards-log-stat-value {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
 }
 
 .drawn-cards-log-list {
@@ -112,27 +161,18 @@
   font-style: italic;
 }
 
-.drawn-cards-log-stats {
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  margin-bottom: 12px;
+/* Mobile styles */
+@media (max-width: 768px) {
+  .session-log-drawer {
+    width: 85vw;
+  }
+  
+  .session-log-drawer-handle {
+    width: 40px;
+    height: 100px;
+  }
+  
+  .session-log-drawer-handle:hover {
+    width: 44px;
+  }
 }
-
-.drawn-cards-log-stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.drawn-cards-log-stat-label {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.drawn-cards-log-stat-value {
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 600;
-}
-

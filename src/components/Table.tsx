@@ -7,14 +7,14 @@ interface TableProps {
   drawnCards: CardInstance[];
   getCardById: (cardId: string) => Card | undefined;
   onCardUpdate: (card: CardInstance) => void;
-  onDragStart: (e: React.MouseEvent, card: CardInstance) => void;
-  onRotateStart: (e: React.MouseEvent, card: CardInstance) => void;
+  onDragStart: (e: React.MouseEvent | React.TouchEvent, card: CardInstance) => void;
+  onRotateStart: (e: React.MouseEvent | React.TouchEvent, card: CardInstance) => void;
   onDoubleClick: (card: CardInstance) => void;
   isDragging?: boolean;
   isRotating?: boolean;
   zoom?: number;
   panOffset?: { x: number; y: number };
-  onPanStart?: (e: React.MouseEvent) => void;
+  onPanStart?: (e: React.MouseEvent | React.TouchEvent) => void;
   deckElement?: React.ReactNode;
 }
 
@@ -37,6 +37,7 @@ const Table: React.FC<TableProps> = ({
       <div 
         className="table-surface"
         onMouseDown={onPanStart || undefined}
+        onTouchStart={onPanStart || undefined}
         style={{
           transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
           transformOrigin: 'top center',

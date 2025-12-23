@@ -29,7 +29,7 @@ export const CardComponent: React.FC<CardProps> = ({
     onDoubleClick(cardInstance);
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     // Stop propagation to prevent table panning
     e.stopPropagation();
     // If clicking on rotate handle, it will handle its own event
@@ -37,7 +37,7 @@ export const CardComponent: React.FC<CardProps> = ({
     onDragStart(e, cardInstance);
   };
 
-  const handleRotateMouseDown = (e: React.MouseEvent) => {
+  const handleRotateMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation(); // Prevent drag from starting
     onRotateStart(e, cardInstance);
   };
@@ -60,6 +60,7 @@ export const CardComponent: React.FC<CardProps> = ({
       className={`${styles.card} ${isDragging ? styles.dragging : ''} ${isRotating ? styles.rotating : ''}`}
       style={style}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleMouseDown}
       onDoubleClick={handleDoubleClick}
     >
       <div className={styles.cardInner}>
@@ -101,6 +102,7 @@ export const CardComponent: React.FC<CardProps> = ({
           <div 
             className={styles.rotateHandle}
             onMouseDown={handleRotateMouseDown}
+            onTouchStart={handleRotateMouseDown}
           ></div>
         )}
       </div>

@@ -6,11 +6,11 @@ import './DrawnCardsLog.css';
 interface DrawnCardsLogProps {
   drawnCards: CardInstance[];
   getCardById: (cardId: string) => Card | undefined;
-  isMinimized: boolean;
-  onToggleMinimize: () => void;
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
-const DrawnCardsLog: React.FC<DrawnCardsLogProps> = ({ drawnCards, getCardById, isMinimized, onToggleMinimize }) => {
+const DrawnCardsLog: React.FC<DrawnCardsLogProps> = ({ drawnCards, getCardById, isOpen, onToggle }) => {
   // Calculate statistics
   const stats = React.useMemo(() => {
     let majorArcana = 0;
@@ -45,13 +45,19 @@ const DrawnCardsLog: React.FC<DrawnCardsLogProps> = ({ drawnCards, getCardById, 
   }, [drawnCards, getCardById]);
 
   return (
-    <div className={`drawn-cards-log ${isMinimized ? 'minimized' : ''}`}>
-      <div className="drawn-cards-log-header" onClick={onToggleMinimize} style={{ cursor: 'pointer' }}>
-        <span>Session Log</span>
-        <span className="drawn-cards-log-toggle">{isMinimized ? '▼' : '▲'}</span>
-      </div>
-      {!isMinimized && (
-        <>
+    <>
+      {/* Drawer overlay */}
+      {isOpen && (
+        <div className="session-log-overlay" onClick={onToggle}></div>
+      )}
+      
+      {/* Drawer panel */}
+      <div className={`session-log-drawer ${isOpen ? 'open' : ''}`}>
+        <div className="session-log-header">
+          <span>Session Log</span>
+          <button className="session-log-close" onClick={onToggle} aria-label="Close">×</button>
+        </div>
+        <div className="session-log-content">
           {drawnCards.length > 0 && (
             <div className="drawn-cards-log-stats">
               <div className="drawn-cards-log-stat-row">
@@ -103,9 +109,9 @@ const DrawnCardsLog: React.FC<DrawnCardsLogProps> = ({ drawnCards, getCardById, 
               })
             )}
           </div>
-        </>
-      )}
-    </div>
+        </div>
+      </div>
+    </>
   );
 };
 

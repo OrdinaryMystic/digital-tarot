@@ -12,6 +12,7 @@ import Deck from './components/Deck';
 import IconButton from './components/IconButton';
 import DrawnCardsLog from './components/DrawnCardsLog';
 import { ShuffleNotification, OverhandShuffleIndicator } from './components/ShuffleNotification';
+import Instructions from './components/Instructions';
 import './App.css';
 
 function App() {
@@ -64,13 +65,10 @@ function App() {
   const [sessionLog, setSessionLog] = useState<CardInstance[]>([]);
   const [drawFaceUp, setDrawFaceUp] = useState(true);
   // Initialize minimized on mobile devices
-  const [isSessionLogMinimized, setIsSessionLogMinimized] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth <= 768;
-    }
-    return false;
-  });
+  // Session log drawer - closed by default
+  const [isSessionLogOpen, setIsSessionLogOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:35',message:'Before useMysticalShuffle',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,E'})}).catch(()=>{});
@@ -94,6 +92,8 @@ function App() {
   fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:48',message:'After useCardStack',data:{drawnCardsCount:drawnCards.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,E'})}).catch(()=>{});
   // #endregion
   const deckRef = React.useRef<HTMLDivElement>(null);
+  const topHalfRef = React.useRef<HTMLDivElement>(null);
+  const bottomHalfRef = React.useRef<HTMLDivElement>(null);
 
   // Get card data for drawn cards
   const getCardById = useCallback((cardId: string): Card | undefined => {
@@ -119,10 +119,43 @@ function App() {
 
   // Handle drag end - check if card was dropped on deck
   const handleDragEndWithCheck = useCallback((e: MouseEvent, cardId: string) => {
-    // Only check for deck drop if deck exists and has cards
-    if (!deckRef.current || deck.length === 0) return;
+    // Check if we're over any deck (main deck or split decks)
+    let deckElement: HTMLElement | null = null;
+    
+    if (isSplit) {
+      // Check split decks - check both and use whichever one the mouse is over
+      if (topHalfRef.current && topHalf.length > 0) {
+        const topRect = topHalfRef.current.getBoundingClientRect();
+        if (
+          e.clientX >= topRect.left &&
+          e.clientX <= topRect.right &&
+          e.clientY >= topRect.top &&
+          e.clientY <= topRect.bottom
+        ) {
+          deckElement = topHalfRef.current;
+        }
+      }
+      if (!deckElement && bottomHalfRef.current && bottomHalf.length > 0) {
+        const bottomRect = bottomHalfRef.current.getBoundingClientRect();
+        if (
+          e.clientX >= bottomRect.left &&
+          e.clientX <= bottomRect.right &&
+          e.clientY >= bottomRect.top &&
+          e.clientY <= bottomRect.bottom
+        ) {
+          deckElement = bottomHalfRef.current;
+        }
+      }
+    } else {
+      // Check main deck
+      if (deckRef.current && deck.length > 0) {
+        deckElement = deckRef.current;
+      }
+    }
+    
+    if (!deckElement) return;
 
-    const deckRect = deckRef.current.getBoundingClientRect();
+    const deckRect = deckElement.getBoundingClientRect();
     const mouseX = e.clientX;
     const mouseY = e.clientY;
 
@@ -139,9 +172,18 @@ function App() {
         handleReturnCard(cardInstance);
       }
     }
-  }, [drawnCards, handleReturnCard, deck.length]);
+  }, [drawnCards, handleReturnCard, deck.length, isSplit, topHalf.length, bottomHalf.length]);
 
   const { dragStart, rotateStart, handleDoubleClick, isDragging, isRotating } = useCardInteraction(updateCard, bringToFront, handleDragEndWithCheck, zoom, panOffset);
+
+  // Check if instructions have been shown before
+  useEffect(() => {
+    const hasSeenInstructions = localStorage.getItem('digital-tarot-has-seen-instructions');
+    if (!hasSeenInstructions) {
+      setShowInstructions(true);
+      localStorage.setItem('digital-tarot-has-seen-instructions', 'true');
+    }
+  }, []);
 
   // Handle drawing a card from the deck (or from split decks)
   const handleDrawCard = useCallback((fromTopHalf: boolean = false) => {
@@ -168,17 +210,6 @@ function App() {
     }
   }, [deck, topHalf, bottomHalf, isSplit, drawCard, seedGenerator, drawFaceUp]);
 
-  // Update session log minimized state when window is resized
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth <= 768 && !isSessionLogMinimized) {
-        setIsSessionLogMinimized(true);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [isSessionLogMinimized]);
 
   // Update session log when cards are drawn
   useEffect(() => {
@@ -481,24 +512,38 @@ function App() {
     setBottomHalf([]);
   }, [returnAllCards]);
 
-  // Handle table panning
-  const handlePanStart = useCallback((e: React.MouseEvent) => {
+  // Handle table panning (mouse and touch)
+  const handlePanStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     // Don't pan if clicking on a card or deck
     const target = e.target as HTMLElement;
-    if (target.closest('.card, .deck, [data-card-id]')) {
+    if (target.closest('.card, .deck, [data-card-id], .session-log-drawer, .session-log-drawer-handle, .session-log-overlay')) {
       return;
     }
+    
+    // Prevent default for touch to avoid scrolling
+    if ('touches' in e) {
+      e.preventDefault();
+    }
+    
     setIsPanning(true);
-    setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    setPanStart({ x: clientX - panOffset.x, y: clientY - panOffset.y });
   }, [panOffset]);
 
   useEffect(() => {
     if (!isPanning) return;
 
-    const handlePanMove = (e: MouseEvent) => {
+    const handlePanMove = (e: MouseEvent | TouchEvent) => {
+      // Prevent default for touch to avoid scrolling
+      if ('touches' in e) {
+        e.preventDefault();
+      }
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
       setPanOffset({
-        x: e.clientX - panStart.x,
-        y: e.clientY - panStart.y,
+        x: clientX - panStart.x,
+        y: clientY - panStart.y,
       });
     };
 
@@ -508,10 +553,14 @@ function App() {
 
     document.addEventListener('mousemove', handlePanMove);
     document.addEventListener('mouseup', handlePanEnd);
+    document.addEventListener('touchmove', handlePanMove, { passive: false });
+    document.addEventListener('touchend', handlePanEnd);
 
     return () => {
       document.removeEventListener('mousemove', handlePanMove);
       document.removeEventListener('mouseup', handlePanEnd);
+      document.removeEventListener('touchmove', handlePanMove);
+      document.removeEventListener('touchend', handlePanEnd);
     };
   }, [isPanning, panStart]);
 
@@ -652,6 +701,7 @@ function App() {
           isSplit ? (
             <>
               <div 
+                ref={topHalfRef}
                 style={{
                   position: 'absolute',
                   left: `${topHalfPosition.x}px`,
@@ -677,6 +727,7 @@ function App() {
                 />
               </div>
               <div 
+                ref={bottomHalfRef}
                 style={{
                   position: 'absolute',
                   left: `${bottomHalfPosition.x}px`,
@@ -725,8 +776,8 @@ function App() {
       <DrawnCardsLog 
         drawnCards={sessionLog} 
         getCardById={getCardById}
-        isMinimized={isSessionLogMinimized}
-        onToggleMinimize={() => setIsSessionLogMinimized(prev => !prev)}
+        isOpen={isSessionLogOpen}
+        onToggle={() => setIsSessionLogOpen(prev => !prev)}
       />
       {shuffleNotification && (
         <ShuffleNotification
@@ -795,17 +846,19 @@ function App() {
             tooltip={drawFaceUp ? "Draw Face Up" : "Draw Face Down"}
             onClick={() => {
               seedGenerator.trackClick();
-              setDrawFaceUp(prev => {
-                const newValue = !prev;
-                // Auto-minimize session log when drawing face down
-                if (!newValue) {
-                  setIsSessionLogMinimized(true);
-                }
-                return newValue;
-              });
+              setDrawFaceUp(prev => !prev);
               setIsMobileMenuOpen(false);
             }}
-            active={drawFaceUp}
+          />
+          <IconButton
+            icon="📋"
+            tooltip={isSessionLogOpen ? "Close Session Log" : "Open Session Log"}
+            onClick={() => {
+              seedGenerator.trackClick();
+              setIsSessionLogOpen(prev => !prev);
+              setIsMobileMenuOpen(false);
+            }}
+            active={isSessionLogOpen}
           />
           <IconButton
             icon="↩️"
@@ -819,13 +872,22 @@ function App() {
           />
           <IconButton
             icon="🔄"
-            tooltip="Reset All"
+            tooltip="Reset Session"
             onClick={() => {
               seedGenerator.trackClick();
               handleResetAll();
               setIsMobileMenuOpen(false);
             }}
             disabled={sessionLog.length === 0 && !isDeckModified()}
+          />
+          <IconButton
+            icon="❓"
+            tooltip="Show Instructions"
+            onClick={() => {
+              seedGenerator.trackClick();
+              setShowInstructions(true);
+              setIsMobileMenuOpen(false);
+            }}
           />
           <div className="zoom-controls">
             <IconButton
@@ -842,6 +904,10 @@ function App() {
           </div>
         </div>
       </div>
+      <Instructions 
+        isOpen={showInstructions} 
+        onClose={() => setShowInstructions(false)} 
+      />
     </div>
   );
 }
