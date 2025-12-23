@@ -9,7 +9,7 @@ interface DeckProps {
   onMouseDown?: (e: React.MouseEvent) => void;
 }
 
-const Deck: React.FC<DeckProps> = ({ cardCount, onDraw, onCardDropped, deckRef, onMouseDown }) => {
+const Deck: React.FC<DeckProps> = ({ cardCount, onDraw, deckRef, onMouseDown }) => {
   const [wasDragged, setWasDragged] = useState(false);
   const mouseDownPosRef = React.useRef<{ x: number; y: number } | null>(null);
   
@@ -24,7 +24,7 @@ const Deck: React.FC<DeckProps> = ({ cardCount, onDraw, onCardDropped, deckRef, 
     return null;
   }
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = () => {
     // Only draw if we didn't drag (mouse didn't move much)
     if (!wasDragged) {
       onDraw();

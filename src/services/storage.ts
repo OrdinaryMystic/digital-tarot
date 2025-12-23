@@ -49,18 +49,7 @@ class StorageService {
   }
 
   // Card notes operations (future)
-  async saveCardNotes(cardId: string, notes: any[]): Promise<void> {
-    const allNotes = this.getCardNotes();
-    allNotes[cardId] = notes;
-    localStorage.setItem(this.CARD_NOTES_KEY, JSON.stringify(allNotes));
-  }
-
-  async getCardNotes(cardId: string): Promise<any[]> {
-    const allNotes = this.getCardNotes();
-    return allNotes[cardId] || [];
-  }
-
-  private getCardNotes(): Record<string, any[]> {
+  private getCardNotesSync(): Record<string, any[]> {
     const data = localStorage.getItem(this.CARD_NOTES_KEY);
     if (!data) return {};
     try {
@@ -69,8 +58,18 @@ class StorageService {
       return {};
     }
   }
+
+  async saveCardNotes(cardId: string, notes: any[]): Promise<void> {
+    const allNotes = this.getCardNotesSync();
+    allNotes[cardId] = notes;
+    localStorage.setItem(this.CARD_NOTES_KEY, JSON.stringify(allNotes));
+  }
+
+  async getCardNotes(cardId: string): Promise<any[]> {
+    const allNotes = this.getCardNotesSync();
+    return allNotes[cardId] || [];
+  }
 }
 
 // Export singleton instance
 export const storageService = new StorageService();
-

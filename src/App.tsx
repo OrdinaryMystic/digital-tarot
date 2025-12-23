@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardInstance } from './types';
 import { DeckCard } from './types/deck';
-import { createFullDeck, createShuffledDeck } from './utils/tarotDeck';
+import { createFullDeck } from './utils/tarotDeck';
 import { setDeckPosition as setDeckPositionUtil, setTopHalfPosition as setTopHalfPositionUtil, setBottomHalfPosition as setBottomHalfPositionUtil } from './utils/cardPositioning';
 import seedrandom from 'seedrandom';
 import { useMysticalShuffle } from './hooks/useMysticalShuffle';
@@ -48,7 +48,6 @@ function App() {
     x: typeof window !== 'undefined' ? (window.innerWidth / 2 - 60) : 600, 
     y: 400 
   }));
-  const [isShuffling, setIsShuffling] = useState(false);
   const [zoom, setZoom] = useState(1); // Zoom scale factor (1 = 100%)
   const [deckPosition, setDeckPosition] = useState(() => ({ 
     x: typeof window !== 'undefined' ? (window.innerWidth / 2 - 60) : 600, 
@@ -90,7 +89,7 @@ function App() {
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:46',message:'Before useCardStack',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,E'})}).catch(()=>{});
   // #endregion
-  const { drawnCards, drawCard, updateCard, clearCards, bringToFront, returnCard, returnAllCards } = useCardStack();
+  const { drawnCards, drawCard, updateCard, bringToFront, returnCard, returnAllCards } = useCardStack();
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/2b592729-be1a-46fb-8bcd-2c8271753022',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:48',message:'After useCardStack',data:{drawnCardsCount:drawnCards.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,E'})}).catch(()=>{});
   // #endregion
@@ -112,12 +111,7 @@ function App() {
         setDeck(prev => {
           const newDeck = [...prev, { card, isReversed: returned.isReversed }];
           // Shuffle to random position
-          const seed = seedGenerator.generateSeed();
-          const shuffled = shuffleOnce(newDeck.map(dc => dc.card));
-          return shuffled.map(shuffledCard => {
-            const deckCard = newDeck.find(dc => dc.card.id === shuffledCard.id);
-            return deckCard || { card: shuffledCard, isReversed: false };
-          });
+          return shuffleOnce(newDeck);
         });
       }
     }
@@ -147,7 +141,7 @@ function App() {
     }
   }, [drawnCards, handleReturnCard, deck.length]);
 
-  const { dragStart, rotateStart, handleDoubleClick, isDragging, isRotating, getDraggedCard } = useCardInteraction(updateCard, bringToFront, handleDragEndWithCheck, zoom, panOffset);
+  const { dragStart, rotateStart, handleDoubleClick, isDragging, isRotating } = useCardInteraction(updateCard, bringToFront, handleDragEndWithCheck, zoom, panOffset);
 
   // Handle drawing a card from the deck (or from split decks)
   const handleDrawCard = useCallback((fromTopHalf: boolean = false) => {
@@ -667,7 +661,7 @@ function App() {
                 <Deck
                   cardCount={topHalf.length}
                   onDraw={() => handleDrawCard(true)}
-                  deckRef={null}
+                  deckRef={undefined}
                   onMouseDown={(e) => {
                     e.stopPropagation();
                     setIsDraggingDeck(true);
@@ -692,7 +686,7 @@ function App() {
                 <Deck
                   cardCount={bottomHalf.length}
                   onDraw={() => handleDrawCard(false)}
-                  deckRef={null}
+                  deckRef={undefined}
                   onMouseDown={(e) => {
                     e.stopPropagation();
                     setIsDraggingDeck(true);

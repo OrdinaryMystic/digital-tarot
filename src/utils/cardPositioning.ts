@@ -42,7 +42,6 @@ export const getDiscardPosition = (deckId?: 'top' | 'bottom' | 'main'): { x: num
     y: deckPos.y, // Same Y position as deck (top-aligned)
   };
 };
-const STACK_OFFSET = 8; // Pixels offset for stacked cards
 const POSITION_THRESHOLD = 20; // Pixels - if card moved more than this, consider it moved
 
 // Generate random rotation between -3 and +3 degrees from ideal upright (0 degrees)

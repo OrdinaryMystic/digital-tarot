@@ -16,7 +16,6 @@ interface CardProps {
 export const CardComponent: React.FC<CardProps> = ({
   cardInstance,
   card,
-  onUpdate,
   onDragStart,
   onRotateStart,
   onDoubleClick,

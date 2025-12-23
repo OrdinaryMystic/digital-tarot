@@ -12,7 +12,7 @@ export interface UseCardInteractionReturn {
 
 export const useCardInteraction = (
   onCardUpdate: (card: CardInstance) => void,
-  bringToFront: (cardId: string) => void,
+  bringToFront: (cardId: string) => number,
   onDragEnd?: (e: MouseEvent, cardId: string) => void,
   zoom?: number,
   panOffset?: { x: number; y: number }

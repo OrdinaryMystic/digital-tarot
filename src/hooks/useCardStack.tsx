@@ -8,7 +8,7 @@ export interface UseCardStackReturn {
   updateCard: (card: CardInstance) => void;
   clearCards: () => void;
   getNextZIndex: () => number;
-  bringToFront: (cardId: string) => void;
+  bringToFront: (cardId: string) => number;
   returnCard: (cardInstanceId: string) => CardInstance | null;
   returnAllCards: () => CardInstance[];
 }
@@ -83,7 +83,7 @@ export const useCardStack = (): UseCardStackReturn => {
     return nextZIndexRef.current;
   }, []);
 
-  const bringToFront = useCallback((cardId: string) => {
+  const bringToFront = useCallback((cardId: string): number => {
     // Get the next z-index and increment
     const newZIndex = nextZIndexRef.current;
     nextZIndexRef.current += 1;

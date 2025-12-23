@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Card } from '../types';
 import { DeckCard } from '../types/deck';
 import { SeedGenerator } from '../utils/seedGenerator';
-import { riffleShuffle, overhandShuffle } from '../utils/realisticShuffle';
+import { riffleShuffle } from '../utils/realisticShuffle';
 
 export interface UseMysticalShuffleReturn {
   shuffle: (deck: DeckCard[]) => DeckCard[];
@@ -24,10 +23,6 @@ export const useMysticalShuffle = (): UseMysticalShuffleReturn => {
     return riffleShuffle(deck, seed);
   }, []);
 
-  // Overhand shuffle (for continuous shuffling)
-  const overhandShuffleOnce = useCallback((deck: DeckCard[], seed: number): DeckCard[] => {
-    return overhandShuffle(deck, seed);
-  }, []);
 
   // Start continuous shuffling
   const startShuffling = useCallback(() => {

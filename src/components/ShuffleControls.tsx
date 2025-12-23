@@ -17,7 +17,7 @@ const ShuffleControls: React.FC<ShuffleControlsProps> = ({
   onStopShuffling,
   seedGenerator,
 }) => {
-  const [hoverTime, setHoverTime] = useState(0);
+  const [, setHoverTime] = useState(0);
   const hoverStartRef = useRef<number | null>(null);
   const hoverIntervalRef = useRef<number | null>(null);
 
