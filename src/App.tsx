@@ -15,6 +15,7 @@ import DrawnCardsLog from './components/DrawnCardsLog';
 import { ShuffleNotification, OverhandShuffleIndicator } from './components/ShuffleNotification';
 import Instructions from './components/Instructions';
 import DropZone from './components/DropZone';
+import { MobileWarning } from './components/MobileWarning';
 import { trackEvent } from './utils/analytics';
 import './App.css';
 
@@ -63,6 +64,7 @@ function App() {
   const [isSessionLogOpen, setIsSessionLogOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [dismissMobileWarning, setDismissMobileWarning] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [dropZoneBounds, setDropZoneBounds] = useState<{ left: number; right: number; top: number; bottom: number } | null>(null);
   const [topHalfDropZoneBounds, setTopHalfDropZoneBounds] = useState<{ left: number; right: number; top: number; bottom: number } | null>(null);
@@ -752,6 +754,9 @@ function App() {
   
   return (
     <div className="app">
+      {isMobile && !dismissMobileWarning && (
+        <MobileWarning onDismiss={() => setDismissMobileWarning(true)} />
+      )}
       <Table
         drawnCards={drawnCards}
         getCardById={getCardById}
