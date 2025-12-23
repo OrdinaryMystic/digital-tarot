@@ -47,7 +47,7 @@ export const CardComponent: React.FC<CardProps> = ({
     onDragStart(e, cardInstance);
   };
 
-  const handleMouseUp = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleMouseUp = (_e: React.MouseEvent | React.TouchEvent) => {
     // Only select if it was a click (not a drag)
     if (!wasDraggedRef.current && onSelect) {
       onSelect(cardInstance.id);
