@@ -83,13 +83,10 @@ function App() {
   // Handle returning a single card to the deck at a random position
   const handleReturnCard = useCallback((cardInstance: CardInstance) => {
     trackEvent('return_card', { card_id: cardInstance.cardId });
-    console.log('handleReturnCard called with:', cardInstance);
     const returned = returnCard(cardInstance.id);
-    console.log('returnCard returned:', returned);
     if (returned) {
       // Add card back to deck with its reversal state at a random position
       const card = getCardById(returned.cardId);
-      console.log('getCardById returned:', card);
       if (card) {
         if (isSplit) {
           // If split, add to bottom half
@@ -97,14 +94,12 @@ function App() {
             const newHalf = [...prev, { card, isReversed: returned.isReversed }];
             return shuffleOnce(newHalf);
           });
-          console.log('Added to bottom half (split deck)');
         } else {
           setDeck(prev => {
             const newDeck = [...prev, { card, isReversed: returned.isReversed }];
             // Shuffle to random position
             return shuffleOnce(newDeck);
           });
-          console.log('Added to deck');
         }
       }
     }
