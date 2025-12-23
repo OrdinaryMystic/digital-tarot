@@ -46,13 +46,6 @@ export interface ErrorCaughtParams {
   message: string;
 }
 
-type EventParams =
-  | ShuffleUsedParams
-  | DrawCardParams
-  | CardFlippedParams
-  | ErrorCaughtParams
-  | Record<string, never>; // For events with no params
-
 // Check if GA is available and measurement ID exists
 const isGAAvailable = (): boolean => {
   return (
