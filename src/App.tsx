@@ -83,27 +83,36 @@ function App() {
   // Handle returning a single card to the deck at a random position
   const handleReturnCard = useCallback((cardInstance: CardInstance) => {
     trackEvent('return_card', { card_id: cardInstance.cardId });
+    
+    // Remove the card from drawnCards first
     const returned = returnCard(cardInstance.id);
-    if (returned) {
-      // Add card back to deck with its reversal state at a random position
-      const card = getCardById(returned.cardId);
-      if (card) {
-        if (isSplit) {
-          // If split, add to bottom half
-          setBottomHalf(prev => {
-            const newHalf = [...prev, { card, isReversed: returned.isReversed }];
-            return shuffleOnce(newHalf);
-          });
-        } else {
-          setDeck(prev => {
-            const newDeck = [...prev, { card, isReversed: returned.isReversed }];
-            // Shuffle to random position
-            return shuffleOnce(newDeck);
-          });
-        }
+    
+    // Use the cardInstance directly if returnCard didn't find it (shouldn't happen, but fallback)
+    const cardData = returned || cardInstance;
+    
+    // Get the card definition
+    const card = getCardById(cardData.cardId);
+    if (card) {
+      const deckCard = { card, isReversed: cardData.isReversed };
+      
+      if (isSplit) {
+        // If split, add to bottom half
+        setBottomHalf(prev => {
+          const newHalf = [...prev, deckCard];
+          // Only shuffle if we have more than 1 card
+          return newHalf.length > 1 ? shuffleOnce(newHalf) : newHalf;
+        });
+      } else {
+        // Add card to deck - always create a new array to ensure React detects the change
+        setDeck(prev => {
+          // Create new array with the card added
+          const newDeck = [...prev, deckCard];
+          // Only shuffle if we have more than 1 card (shuffling 1 card is pointless)
+          return newDeck.length > 1 ? shuffleOnce(newDeck) : newDeck;
+        });
       }
     }
-  }, [returnCard, getCardById, seedGenerator, shuffleOnce, isSplit]);
+  }, [returnCard, getCardById, shuffleOnce, isSplit]);
 
   // Handle drag end - check if card was dropped on deck
   const handleDragEndWithCheck = useCallback((e: MouseEvent, cardId: string) => {
@@ -133,6 +142,7 @@ function App() {
       inBounds = inTopBounds || inBottomBounds;
     } else {
       // Check single drop zone for normal deck
+      // Even if deck is empty, drop zone should still work (invisible placeholder maintains position)
       if (dropZoneBounds) {
         inBounds = (
           mouseX >= dropZoneBounds.left - padding &&
@@ -187,6 +197,31 @@ function App() {
       setDeck(prev => prev.slice(1));
     }
   }, [deck, topHalf, bottomHalf, isSplit, drawCard, seedGenerator, drawFaceUp]);
+
+  // Auto-rejoin split decks when one becomes empty
+  useEffect(() => {
+    if (isSplit) {
+      // If top half is empty but bottom half has cards, rejoin
+      if (topHalf.length === 0 && bottomHalf.length > 0) {
+        setDeck([...bottomHalf]);
+        setIsSplit(false);
+        setBottomHalf([]);
+        setTopHalfPositionUtil(null);
+        setBottomHalfPositionUtil(null);
+        setDeckPosition(bottomHalfPosition);
+      }
+      // If bottom half is empty but top half has cards, rejoin
+      else if (bottomHalf.length === 0 && topHalf.length > 0) {
+        setDeck([...topHalf]);
+        setIsSplit(false);
+        setTopHalf([]);
+        setTopHalfPositionUtil(null);
+        setBottomHalfPositionUtil(null);
+        setDeckPosition(topHalfPosition);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSplit, topHalf.length, bottomHalf.length]);
 
 
   // Update session log when cards are drawn
@@ -451,8 +486,19 @@ function App() {
       };
     });
     
-    setDeck(prev => [...prev, ...cardsToAdd]);
-  }, [returnAllCards]);
+    if (isSplit) {
+      // If split, add all cards to bottom half
+      setBottomHalf(prev => {
+        const newHalf = [...prev, ...cardsToAdd];
+        return shuffleOnce(newHalf);
+      });
+    } else {
+      setDeck(prev => {
+        const newDeck = [...prev, ...cardsToAdd];
+        return shuffleOnce(newDeck);
+      });
+    }
+  }, [returnAllCards, isSplit, shuffleOnce, seedGenerator]);
 
   // Check if deck has been modified from original state
   const isDeckModified = useCallback(() => {
@@ -633,24 +679,32 @@ function App() {
                   position: 'absolute',
                   left: `${topHalfPosition.x}px`,
                   top: `${topHalfPosition.y}px`,
+                  width: topHalf.length > 0 ? 'auto' : '140px',
+                  height: topHalf.length > 0 ? 'auto' : '240px',
+                  minWidth: '140px',
+                  minHeight: '240px',
                 }}
               >
-                <Deck
-                  cardCount={topHalf.length}
-                  onDraw={() => handleDrawCard(true)}
-                  deckRef={undefined}
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                    setIsDraggingDeck(true);
-                    setDraggedDeckId('top');
-                    const tableX = (e.clientX - panOffset.x) / zoom;
-                    const tableY = (e.clientY - panOffset.y) / zoom;
-                    setDeckDragStart({
-                      x: tableX - topHalfPosition.x,
-                      y: tableY - topHalfPosition.y,
-                    });
-                  }}
-                />
+                {topHalf.length > 0 ? (
+                  <Deck
+                    cardCount={topHalf.length}
+                    onDraw={() => handleDrawCard(true)}
+                    deckRef={undefined}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      setIsDraggingDeck(true);
+                      setDraggedDeckId('top');
+                      const tableX = (e.clientX - panOffset.x) / zoom;
+                      const tableY = (e.clientY - panOffset.y) / zoom;
+                      setDeckDragStart({
+                        x: tableX - topHalfPosition.x,
+                        y: tableY - topHalfPosition.y,
+                      });
+                    }}
+                  />
+                ) : (
+                  <div style={{ width: '140px', height: '240px', opacity: 0 }} />
+                )}
               </div>
               <div 
                 ref={bottomHalfRef}
@@ -658,28 +712,37 @@ function App() {
                   position: 'absolute',
                   left: `${bottomHalfPosition.x}px`,
                   top: `${bottomHalfPosition.y}px`,
+                  width: bottomHalf.length > 0 ? 'auto' : '140px',
+                  height: bottomHalf.length > 0 ? 'auto' : '240px',
+                  minWidth: '140px',
+                  minHeight: '240px',
                 }}
               >
-                <Deck
-                  cardCount={bottomHalf.length}
-                  onDraw={() => handleDrawCard(false)}
-                  deckRef={undefined}
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                    setIsDraggingDeck(true);
-                    setDraggedDeckId('bottom');
-                    const tableX = (e.clientX - panOffset.x) / zoom;
-                    const tableY = (e.clientY - panOffset.y) / zoom;
-                    setDeckDragStart({
-                      x: tableX - bottomHalfPosition.x,
-                      y: tableY - bottomHalfPosition.y,
-                    });
-                  }}
-                />
+                {bottomHalf.length > 0 ? (
+                  <Deck
+                    cardCount={bottomHalf.length}
+                    onDraw={() => handleDrawCard(false)}
+                    deckRef={undefined}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      setIsDraggingDeck(true);
+                      setDraggedDeckId('bottom');
+                      const tableX = (e.clientX - panOffset.x) / zoom;
+                      const tableY = (e.clientY - panOffset.y) / zoom;
+                      setDeckDragStart({
+                        x: tableX - bottomHalfPosition.x,
+                        y: tableY - bottomHalfPosition.y,
+                      });
+                    }}
+                  />
+                ) : (
+                  <div style={{ width: '140px', height: '240px', opacity: 0 }} />
+                )}
               </div>
             </>
           ) : (
             <div 
+              key={`deck-container-${deck.length}`}
               ref={deckRef}
               style={{
                 position: 'absolute',
