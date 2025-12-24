@@ -54,6 +54,7 @@ const DropZone: React.FC<DropZoneProps> = ({ isVisible, position, zoom, panOffse
         pointerEvents: 'none', // Don't block interactions
       }}
     >
+      <div className="drop-zone-text">drop card to return to deck</div>
       <div className="drop-zone-border"></div>
     </div>
   );
