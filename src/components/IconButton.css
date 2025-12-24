@@ -21,6 +21,12 @@
   user-select: none;
 }
 
+.icon-button svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
 .icon-button:hover:not(.disabled) {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.5);

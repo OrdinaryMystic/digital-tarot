@@ -29,7 +29,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 28px;
+  padding: 28px 32px;
   border-bottom: 2px solid #8b5fb8;
   background: linear-gradient(135deg, #5a3a6e 0%, #4a2c5e 100%);
   position: sticky;
@@ -40,8 +40,9 @@
 .instructions-header h1 {
   margin: 0;
   color: #c9a8e8;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 600;
+  letter-spacing: 0.03em;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
@@ -69,30 +70,37 @@
 }
 
 .instructions-content {
-  padding: 28px;
+  padding: 32px 36px;
   color: #e0d4f0;
-  line-height: 1.7;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
 }
 
 .instructions-content section {
-  margin-bottom: 32px;
+  margin-bottom: 40px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid rgba(139, 95, 184, 0.2);
 }
 
-.instructions-content section:last-child {
+.instructions-content section:last-of-type {
   margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .instructions-content h2 {
   color: #c9a8e8;
-  font-size: 22px;
-  margin: 0 0 16px 0;
+  font-size: 24px;
+  margin: 0 0 20px 0;
   font-weight: 600;
+  letter-spacing: 0.02em;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .instructions-content p {
-  margin: 0 0 16px 0;
+  margin: 0 0 18px 0;
   font-size: 16px;
+  line-height: 1.8;
 }
 
 .instructions-content p:last-child {
@@ -100,8 +108,10 @@
 }
 
 .instruction-item {
-  margin-bottom: 16px;
-  padding-left: 8px;
+  margin-bottom: 20px;
+  padding-left: 12px;
+  padding-right: 8px;
+  line-height: 1.8;
 }
 
 .instruction-item:last-child {
@@ -111,7 +121,10 @@
 .instruction-item strong {
   color: #c9a8e8;
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.01em;
 }
 
 .instructions-content ul {
@@ -180,9 +193,9 @@
 }
 
 .instructions-footer {
-  margin-top: 40px;
-  padding-top: 24px;
-  border-top: 1px solid #8b5fb8;
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid rgba(139, 95, 184, 0.4);
   text-align: center;
 }
 

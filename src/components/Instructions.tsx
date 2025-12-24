@@ -33,25 +33,25 @@ const Instructions: React.FC<InstructionsProps> = ({ isOpen, onClose }) => {
           <section>
             <h2>Shuffle Modes</h2>
             <div className="instruction-item">
-              <strong>🔀 Riffle Shuffle:</strong> Splits the deck in half and interlaces the cards together, 
+              <strong>Riffle Shuffle:</strong> Splits the deck in half and interlaces the cards together, 
               creating a realistic shuffle pattern. Click once to perform a single riffle shuffle.
             </div>
             <div className="instruction-item">
-              <strong>▶ Overhand Shuffle:</strong> Takes chunks of cards from the top and redistributes them 
+              <strong>Overhand Shuffle:</strong> Takes chunks of cards from the top and redistributes them 
               throughout the deck. Click to start continuous shuffling, then click again to stop when you feel 
               the moment is right.
             </div>
             <div className="instruction-item">
-              <strong>✂️ Cut Deck:</strong> Splits the deck into two halves that you can position separately. 
+              <strong>Cut Deck:</strong> Splits the deck into two halves that you can position separately. 
               Use the rejoin button to combine them back together, or use a shuffle mode which will automatically 
               rejoin and shuffle the decks. The order in which you rejoin affects which cards end up on top.
             </div>
             <div className="instruction-item">
-              <strong>🌀 Spin Deck:</strong> Randomly reverses cards while keeping their order. This is perfect 
+              <strong>Spin Deck:</strong> Randomly reverses cards while keeping their order. This is perfect 
               for mixing upright and reversed cards without changing the sequence.
             </div>
             <div className="instruction-item">
-              <strong>🎲 Randomize Deck:</strong> Completely randomizes the deck using multiple shuffle operations. 
+              <strong>Randomize Deck:</strong> Completely randomizes the deck using multiple shuffle operations. 
               Perfect for starting with a fully randomized deck without manually shuffling multiple times.
             </div>
           </section>
@@ -70,7 +70,7 @@ const Instructions: React.FC<InstructionsProps> = ({ isOpen, onClose }) => {
           <section>
             <h2>Drawing Cards</h2>
             <div className="instruction-item">
-              <strong>👁️ Draw Face Up / 🙈 Draw Face Down:</strong> Toggle whether cards are drawn face up 
+              <strong>Draw Face Up / Draw Face Down:</strong> Toggle whether cards are drawn face up 
               or face down. When face down, you can double-click a card to flip it over.
             </div>
             <p>
@@ -82,7 +82,7 @@ const Instructions: React.FC<InstructionsProps> = ({ isOpen, onClose }) => {
           <section>
             <h2>Session Log</h2>
             <p>
-              Click the clipboard icon (📋) to view your current session. The session log shows all cards 
+              Click the clipboard icon to view your current session. The session log shows all cards 
               you've drawn, along with statistics including the number of major arcana, cards from each suit, 
               and upright vs reversed cards.
             </p>
@@ -91,7 +91,7 @@ const Instructions: React.FC<InstructionsProps> = ({ isOpen, onClose }) => {
           <section>
             <h2>Return All Cards</h2>
             <p>
-              Click "Return All Cards" (↩️) to return all drawn cards back to the deck. This maintains your 
+              Click "Return All Cards" to return all drawn cards back to the deck. This maintains your 
               current session statistics, so you can continue tracking your reading. Cards are added to the 
               bottom of the deck, so you may want to shuffle again after returning cards.
             </p>
@@ -100,7 +100,7 @@ const Instructions: React.FC<InstructionsProps> = ({ isOpen, onClose }) => {
           <section>
             <h2>Reset Session</h2>
             <p>
-              Click "Reset Session" (🔄) to restore the deck to its original order, erase your current session 
+              Click "Reset Session" to restore the deck to its original order, erase your current session 
               statistics, and start from scratch. This is useful when you want to begin a completely new reading.
             </p>
           </section>

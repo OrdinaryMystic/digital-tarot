@@ -13,3 +13,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>
 );
 
+// Track page views on route changes
+window.addEventListener('popstate', () => {
+  trackPageView(window.location.pathname);
+});
+

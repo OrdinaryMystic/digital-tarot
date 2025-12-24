@@ -124,19 +124,23 @@ export const CardComponent: React.FC<CardProps> = ({
           </div>
         ) : (
           <div className={styles.cardBack}>
-            <img
-              src="/cards/card_back.jpg"
-              alt="Card Back"
-              className={styles.cardBackImage}
-              onError={(e) => {
-                // Fallback to pattern if image doesn't exist
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const patternDiv = document.createElement('div');
-                patternDiv.className = styles.cardBackPattern;
-                target.parentElement?.appendChild(patternDiv);
-              }}
-            />
+            {/* Card back content - placeholder structure for custom design */}
+            <div className={styles.cardBackContent}>
+              <img
+                src="/cards/card_back.jpg"
+                alt="Card Back"
+                className={styles.cardBackImage}
+                onError={(e) => {
+                  // Fallback to pattern if image doesn't exist
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const patternDiv = document.createElement('div');
+                  patternDiv.className = styles.cardBackPattern;
+                  target.parentElement?.appendChild(patternDiv);
+                }}
+              />
+              {/* Future: Custom card back SVG component can be placed here */}
+            </div>
           </div>
         )}
         {isSelected && onRotateStart && (
