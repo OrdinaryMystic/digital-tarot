@@ -5,14 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
     <title>Digital Tarot</title>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MC9EPTDS6Q"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-MC9EPTDS6Q');
-    </script>
+    <!-- Google Analytics is loaded dynamically by initAnalytics() in src/utils/analytics.ts -->
+    <!-- This ensures VITE_GA_MEASUREMENT_ID is checked before loading -->
   </head>
   <body>
     <div id="root"></div>

@@ -46,41 +46,91 @@ export interface ErrorCaughtParams {
   message: string;
 }
 
-// Check if GA is available and measurement ID exists
-const isGAAvailable = (): boolean => {
-  return (
-    typeof window !== 'undefined' &&
-    typeof window.gtag !== 'undefined' &&
-    !!import.meta.env.VITE_GA_MEASUREMENT_ID
-  );
+// Get measurement ID from env var only (no fallback)
+const getMeasurementId = (): string | undefined => {
+  return import.meta.env.VITE_GA_MEASUREMENT_ID;
 };
 
-// Initialize Google Analytics
-export const initGA = (measurementId: string) => {
-  // Load gtag script
-  const script1 = document.createElement('script');
-  script1.async = true;
-  script1.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
-  document.head.appendChild(script1);
+// Check if GA is available (gtag function exists)
+const isGAAvailable = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  if (typeof window.gtag === 'undefined') return false;
+  return true;
+};
 
-  // Initialize dataLayer and gtag
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function() {
-    window.dataLayer.push(arguments);
+// Track if we've logged warnings/errors (separate for dev vs prod)
+let hasLoggedDevWarning = false;
+let hasLoggedProdError = false;
+
+// Initialize Google Analytics (dynamically loads script and configures)
+// OWNERSHIP: This function owns ALL GA script loading. index.html does NOT load gtag.js.
+export const initAnalytics = () => {
+  const measurementId = getMeasurementId();
+  if (!measurementId) {
+    if (import.meta.env.DEV && !hasLoggedDevWarning) {
+      console.warn('[Analytics] No GA measurement ID found. Set VITE_GA_MEASUREMENT_ID in .env. GA will not initialize.');
+      hasLoggedDevWarning = true;
+    } else if (!import.meta.env.DEV && !hasLoggedProdError) {
+      console.error('[Analytics] VITE_GA_MEASUREMENT_ID is required in production. GA will not initialize.');
+      hasLoggedProdError = true;
+    }
+    return;
+  }
+
+  // Check if gtag.js script is already loaded (prevent double-loading)
+  const existingScript = document.querySelector(`script[src*="googletagmanager.com/gtag/js"]`);
+  if (existingScript) {
+    // Still proceed to configure if gtag function exists
+  } else {
+    // Initialize dataLayer and gtag function BEFORE loading script
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function() {
+      window.dataLayer.push(arguments);
+    };
+    window.gtag('js', new Date());
+
+    // Load gtag.js script dynamically
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+    document.head.appendChild(script);
+  }
+
+  // Wait for gtag to be available (script loads async)
+  const checkGtag = () => {
+    if (typeof window.gtag === 'undefined') {
+      // If gtag isn't available yet, wait a bit and try again
+      setTimeout(checkGtag, 100);
+      return;
+    }
+
+    // Enable debug mode in dev or if VITE_GA_DEBUG is set
+    const debugMode = import.meta.env.DEV || import.meta.env.VITE_GA_DEBUG === 'true';
+    
+    // Configure GA with debug mode and disable automatic page_view
+    // send_page_view: false prevents double page_view events (we track manually)
+    window.gtag('config', measurementId, {
+      send_page_view: false,
+      ...(debugMode && { debug_mode: true }),
+    });
   };
-  window.gtag('js', new Date());
-  window.gtag('config', measurementId);
+
+  checkGtag();
 };
 
 // Track page views
 export const trackPageView = (path: string) => {
-  if (isGAAvailable()) {
-    const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
-    if (measurementId) {
-      window.gtag('config', measurementId, {
-        page_path: path,
-      });
-    }
+  if (!isGAAvailable()) {
+    return;
+  }
+
+  const measurementId = getMeasurementId();
+  if (measurementId) {
+    // Use config with send_page_view: false to prevent double page_view
+    window.gtag('config', measurementId, {
+      page_path: path,
+      send_page_view: false,
+    });
   }
 };
 
@@ -97,9 +147,15 @@ export const track = <T extends AnalyticsEventName>(
     ? ErrorCaughtParams
     : Record<string, never>
 ) => {
-  if (!isGAAvailable()) return;
+  if (!isGAAvailable()) {
+    return;
+  }
   
-  window.gtag('event', eventName, eventParams || {});
+  try {
+    window.gtag('event', eventName, eventParams || {});
+  } catch (error) {
+    // Never throw - silently fail
+  }
 };
 
 // Track events once per session (using sessionStorage)
@@ -115,7 +171,9 @@ export const trackOnce = <T extends AnalyticsEventName>(
     ? ErrorCaughtParams
     : Record<string, never>
 ) => {
-  if (!isGAAvailable()) return;
+  if (!isGAAvailable()) {
+    return;
+  }
   
   const key = `ga_tracked_${eventName}`;
   if (sessionStorage.getItem(key)) {
@@ -123,7 +181,11 @@ export const trackOnce = <T extends AnalyticsEventName>(
   }
   
   sessionStorage.setItem(key, 'true');
-  window.gtag('event', eventName, eventParams || {});
+  try {
+    window.gtag('event', eventName, eventParams || {});
+  } catch (error) {
+    // Never throw - silently fail
+  }
 };
 
 // Reading completion tracking state
@@ -185,6 +247,13 @@ export const trackEvent = (
     [key: string]: any;
   }
 ) => {
-  if (!isGAAvailable()) return;
-  window.gtag('event', eventName, eventParams);
+  if (!isGAAvailable()) {
+    return;
+  }
+  
+  try {
+    window.gtag('event', eventName, eventParams);
+  } catch (error) {
+    // Never throw - silently fail
+  }
 };

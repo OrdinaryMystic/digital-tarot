@@ -2,9 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
-import { trackPageView } from './utils/analytics';
+import { initAnalytics, trackPageView } from './utils/analytics';
 
-// Track initial page view (Google Analytics is loaded via script tag in index.html)
+// Initialize Google Analytics (dynamically loads gtag.js script)
+initAnalytics();
+
+// Track initial page view (GA is loaded by initAnalytics above)
 trackPageView(window.location.pathname);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
